@@ -1,1 +1,75 @@
 @import "tailwindcss";
+
+@theme {
+  --color-primary: #c17f59;
+  --color-secondary: #5d7a5d;
+  --color-accent: #f5d799;
+  --color-background-warm: #fdfbf7;
+  /* Exact V0 beige */
+  --color-text-main: #111827;
+
+  --font-sans: "Inter", sans-serif;
+  --font-serif: "Playfair Display", serif;
+
+  --animate-fade-in: fade-in 0.8s ease-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #ffffff;
+  color: var(--color-text-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Typography Utilities */
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+/* Ant Design Customizations */
+.ant-btn-primary {
+  background-color: #111111 !important;
+  border-color: #111111 !important;
+  border-radius: 9999px !important;
+  font-weight: 500 !important;
+  height: 48px !important;
+  padding: 0 32px !important;
+}
+
+.ant-btn-primary:hover {
+  background-color: #000000 !important;
+  transform: translateY(-1px);
+}
+
+.ant-input,
+.ant-input-password {
+  border-radius: 9999px !important;
+  /* Pill shaped inputs */
+  padding: 12px 24px !important;
+  border-color: #e5e7eb !important;
+  background-color: #f9fafb !important;
+}
+
+.ant-input:focus,
+.ant-input-affix-wrapper-focused {
+  border-color: #c17f59 !important;
+  background-color: #fff !important;
+  box-shadow: 0 0 0 2px rgba(193, 127, 89, 0.1) !important;
+}
+
+.ant-form-item-label label {
+  font-weight: 500 !important;
+  color: #374151 !important;
+}

@@ -7,20 +7,22 @@ import {
   removeCartItemService,
 } from "../api-service/cart-service";
 import OrderModal from "../components/orderModals";
-import { Trash2 } from "lucide-react";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import { Trash2, ShoppingBag, ArrowRight, Minus, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-function Cart({ userId }) {
+function Cart() {
   const [cartItems, setCartItems] = useState([]);
   const [quantities, setQuantities] = useState({});
   const [loading, setLoading] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [checkoutModal, setCheckoutModal] = useState(false);
+  const navigate = useNavigate();
 
-  // Fetch cart data
   const getdata = async () => {
     try {
       setLoading(true);
-      const data = await getUserCart(userId);
+      const data = await getUserCart();
       setCartItems(data.products || []);
       const qty = {};
       data.products?.forEach((item) => {
@@ -28,7 +30,7 @@ function Cart({ userId }) {
       });
       setQuantities(qty);
     } catch (error) {
-      message.error(error.message);
+      console.log("Cart empty or error");
     } finally {
       setLoading(false);
     }
@@ -47,22 +49,20 @@ function Cart({ userId }) {
         delete newQty[productId];
         return newQty;
       });
-      message.success("Product removed");
+      message.success("Item removed");
     } catch (error) {
-      message.error(error.response?.data?.message || error.message);
+      message.error("Could not remove item");
     }
   };
 
-  const increase = async (id) => {
-    const newQty = quantities[id] + 1;
-    await updateCartItem(id, newQty);
+  const updateQuantity = async (id, newQty) => {
+    if (newQty < 1) return;
     setQuantities((prev) => ({ ...prev, [id]: newQty }));
-  };
-
-  const decrease = async (id) => {
-    const newQty = Math.max(1, quantities[id] - 1);
-    await updateCartItem(id, newQty);
-    setQuantities((prev) => ({ ...prev, [id]: newQty }));
+    try {
+      await updateCartItem(id, newQty);
+    } catch (error) {
+      getdata();
+    }
   };
 
   const clearCart = async () => {
@@ -76,124 +76,142 @@ function Cart({ userId }) {
     }
   };
 
+  const calculateTotal = () => {
+    return cartItems.reduce((sum, item) =>
+      sum + (item.product.oridinaryPrice * quantities[item.product._id]), 0
+    );
+  };
+
   return (
-    <div>
-      <h1 className="text-2xl font-semibold my-6 text-center">Shopping Cart</h1>
+    <div className="min-h-screen bg-white flex flex-col">
+      <Navbar />
 
-      {cartItems.length === 0 ? (
-        <p className="text-center text-gray-500">Your cart is empty.</p>
-      ) : (
-        <div className="flex flex-col lg:flex-row gap-6 mx-4 lg:mx-10">
-          {/* Cart Items */}
-          <div className="flex-2 flex flex-col gap-6">
-            {cartItems.map((item) => (
-              <div
-                key={item.product._id}
-                className="p-4 rounded-lg flex flex-col md:flex-row items-center gap-4 shadow-md"
+      <main className="flex-1 pt-24 pb-20">
+        <div className="container mx-auto px-6 max-w-6xl">
+          <h1 className="font-serif text-4xl text-gray-900 mb-10">Shopping Bag</h1>
+
+          {cartItems.length === 0 && !loading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <ShoppingBag size={64} className="text-gray-200 mb-6" />
+              <h2 className="text-xl font-medium text-gray-900 mb-2">Your bag is empty</h2>
+              <p className="text-gray-500 mb-8">Looks like you haven't added anything yet.</p>
+              <button
+                onClick={() => navigate('/')}
+                className="px-8 py-3 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors"
               >
-                <img
-                  src={item.product.img}
-                  alt={item.product.title}
-                  className="h-32 w-32 object-cover rounded-md"
-                />
+                Continue Shopping
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col lg:flex-row gap-12">
+              {/* Cart Items */}
+              <div className="flex-1 space-y-6">
+                {cartItems.map((item) => (
+                  <div
+                    key={item.product._id}
+                    className="flex gap-6 p-4 border border-gray-100 rounded-2xl"
+                  >
+                    <div className="w-28 h-28 flex-shrink-0 bg-[#f5f5f3] rounded-xl overflow-hidden">
+                      <img
+                        src={item.product.img}
+                        alt={item.product.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
 
-                <div className="flex-1 flex flex-col">
-                  <h2 className="font-semibold text-lg">
-                    {item.product.title}
-                  </h2>
-                  <p className="text-gray-700 mt-1">
-                    {item.product.description}
-                  </p>
+                    <div className="flex-1 flex flex-col justify-between">
+                      <div className="flex justify-between">
+                        <div>
+                          <h3 className="font-medium text-gray-900">{item.product.title}</h3>
+                          <p className="text-sm text-gray-500">{item.product.category?.[0]}</p>
+                        </div>
+                        <p className="font-medium">${item.product.oridinaryPrice?.toFixed(2)}</p>
+                      </div>
 
-                  {/* Quantity Controls */}
-                  <div className="flex items-center gap-2 mt-2">
-                    <button
-                      className="px-2 bg-gray-200 rounded"
-                      onClick={() => decrease(item.product._id)}
-                    >
-                      -
-                    </button>
-                    <span className="w-12 text-center border rounded px-2">
-                      {quantities[item.product._id]}
-                    </span>
-                    <button
-                      className="px-2 bg-gray-500 text-white rounded"
-                      onClick={() => increase(item.product._id)}
-                    >
-                      +
-                    </button>
+                      <div className="flex justify-between items-center mt-4">
+                        <div className="flex items-center gap-3 border border-gray-200 rounded-full px-2">
+                          <button
+                            className="p-2"
+                            onClick={() => updateQuantity(item.product._id, quantities[item.product._id] - 1)}
+                          >
+                            <Minus size={14} />
+                          </button>
+                          <span className="w-8 text-center font-medium">{quantities[item.product._id]}</span>
+                          <button
+                            className="p-2"
+                            onClick={() => updateQuantity(item.product._id, quantities[item.product._id] + 1)}
+                          >
+                            <Plus size={14} />
+                          </button>
+                        </div>
+
+                        <button
+                          onClick={() => removeItem(item.product._id)}
+                          className="text-gray-400 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
 
-                <div className="flex flex-col items-center gap-5">
-                  <p>
-                    $
-                    {item.product.oridinaryPrice * quantities[item.product._id]}
+                <button
+                  onClick={clearCart}
+                  className="text-sm text-red-500 hover:underline"
+                >
+                  Clear bag
+                </button>
+              </div>
+
+              {/* Order Summary */}
+              <div className="lg:w-[380px] flex-shrink-0">
+                <div className="bg-[#f7f5f0] p-6 rounded-2xl sticky top-24">
+                  <h2 className="font-serif text-xl text-gray-900 mb-6">Order Summary</h2>
+
+                  <div className="space-y-3 mb-6 text-sm">
+                    <div className="flex justify-between text-gray-600">
+                      <span>Subtotal</span>
+                      <span>${calculateTotal().toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-600">
+                      <span>Shipping</span>
+                      <span>Calculated at checkout</span>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-gray-200 pt-4 mb-6 flex justify-between font-medium text-lg">
+                    <span>Total</span>
+                    <span>${calculateTotal().toFixed(2)}</span>
+                  </div>
+
+                  <button
+                    onClick={() => setCheckoutModal(true)}
+                    className="w-full py-3.5 bg-gray-900 text-white rounded-full font-medium flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
+                  >
+                    Checkout <ArrowRight size={18} />
+                  </button>
+
+                  <p className="text-xs text-center text-gray-500 mt-4">
+                    Taxes calculated at checkout
                   </p>
-                  <button
-                    className="text-white bg-green-500 px-2 py-1 rounded"
-                    onClick={() => {
-                      setSelectedProduct(item);
-                      setModalVisible(true);
-                    }}
-                  >
-                    Check Out
-                  </button>
-                  <button
-                    className="hover:cursor-pointer hover:bg-gray-100 p-5 rounded-full"
-                    onClick={() => removeItem(item.product._id)}
-                  >
-                    <Trash2 className="text-red-600 font-bold text-right" />
-                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-
-          {/* Order Summary */}
-          <div className="w-full lg:w-1/4 shadow-md p-4 rounded-lg flex flex-col gap-4">
-            <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
-            <p>
-              Total Items:{" "}
-              {cartItems.reduce(
-                (sum, item) => sum + quantities[item.product._id],
-                0
-              )}
-            </p>
-            <p>
-              Total Price: $
-              {cartItems.reduce(
-                (sum, item) =>
-                  sum +
-                  item.product.oridinaryPrice * quantities[item.product._id],
-                0
-              )}
-            </p>
-            <button className="mt-4 bg-blue-500 text-white px-4 py-2 rounded">
-              Proceed Checkout
-            </button>
-            <button
-              className="mt-2 bg-red-500 text-white px-4 py-2 rounded"
-              onClick={clearCart}
-            >
-              Clear Cart
-            </button>
-          </div>
+            </div>
+          )}
         </div>
-      )}
+      </main>
 
-      {/* Order Modal */}
-      {modalVisible && selectedProduct && (
+      <Footer />
+
+      {checkoutModal && cartItems.length > 0 && (
         <OrderModal
-          visible={modalVisible}
-          onClose={() => setModalVisible(false)}
-          product={selectedProduct}
-          productId={selectedProduct.product._id}
-          quantity={quantities[selectedProduct.product._id]}
-          total={
-            selectedProduct.product.oridinaryPrice *
-            quantities[selectedProduct.product._id]
-          }
+          visible={checkoutModal}
+          onClose={() => setCheckoutModal(false)}
+          product={cartItems[0].product}
+          productId={cartItems[0].product._id}
+          quantity={Object.values(quantities).reduce((a, b) => a + b, 0)}
+          total={calculateTotal()}
           refreshCart={getdata}
         />
       )}

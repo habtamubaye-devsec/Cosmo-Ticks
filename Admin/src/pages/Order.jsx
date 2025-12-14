@@ -1,26 +1,12 @@
 import { useState, useEffect } from "react";
-import { Table, Tag, Button, message } from "antd";
+import { Table, Tag, Button, message, Steps, Popover, Segmented } from "antd";
 import { getAllOrders, updateOrder } from "../api-service/order-service";
-
-const statusColors = {
-  0: "orange", // Pending
-  1: "blue", // Accepted / Shipping
-  2: "purple", // Shipped
-  3: "green", // Delivered
-  4: "red", // Cancelled
-};
-
-const statusLabels = {
-  0: "Pending",
-  1: "Accepted",
-  2: "Shipped",
-  3: "Delivered",
-  4: "Cancelled",
-};
+import { Truck, CheckCircle, Clock, XCircle, Package, MoreHorizontal } from "lucide-react";
 
 const Order = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("All");
 
   const getData = async () => {
     try {
@@ -34,172 +20,170 @@ const Order = () => {
     }
   };
 
+  useEffect(() => {
+    getData();
+  }, []);
+
   const updateStatus = async (id, newStatus) => {
     try {
-      const data = await updateOrder(id, newStatus); // call API
-      // Update local state after successful API call
+      await updateOrder(id, newStatus);
       setOrders((prev) =>
         prev.map((order) =>
           order._id === id ? { ...order, status: newStatus } : order
         )
       );
-
-      let msg = "";
-      if (newStatus === 1) msg = "Order accepted";
-      if (newStatus === 2) msg = "Order shipped";
-      if (newStatus === 3) msg = "Order delivered";
-      if (newStatus === 4) msg = "Order cancelled";
-
-      message.success(msg);
+      message.success("Order status updated");
     } catch (error) {
-      message.error(error.response?.data?.message || error.message);
+      message.error("Failed to update status");
     }
   };
 
-  useEffect(() => {
-    getData();
-  }, []);
+  const getStatusStep = (status) => {
+    if (status === 4) return 1; // Cancelled (special case)
+    if (status === 3) return 3; // Delivered
+    if (status === 2) return 2; // Shipped
+    if (status === 1) return 1; // Accepted
+    return 0; // Pending
+  };
+
+  const StatusProgress = ({ status }) => {
+    if (status === 4) return <Tag color="red" icon={<XCircle size={12} />}>Cancelled</Tag>;
+
+    return (
+      <Popover
+        content={
+          <div className="p-4 w-64">
+            <Steps
+              direction="vertical"
+              size="small"
+              current={getStatusStep(status)}
+              items={[
+                { title: 'Pending', icon: <Clock size={14} /> },
+                { title: 'Accepted', icon: <CheckCircle size={14} /> },
+                { title: 'Shipped', icon: <Truck size={14} /> },
+                { title: 'Delivered', icon: <Package size={14} /> },
+              ]}
+            />
+          </div>
+        }
+        title="Order Progress"
+        trigger="hover"
+      >
+        <div className="cursor-pointer">
+          {status === 0 && <Tag color="orange" icon={<Clock size={12} className="mr-1" />}>Pending</Tag>}
+          {status === 1 && <Tag color="blue" icon={<CheckCircle size={12} className="mr-1" />}>Accepted</Tag>}
+          {status === 2 && <Tag color="purple" icon={<Truck size={12} className="mr-1" />}>Shipped</Tag>}
+          {status === 3 && <Tag color="green" icon={<Package size={12} className="mr-1" />}>Delivered</Tag>}
+        </div>
+      </Popover>
+    );
+  };
+
+  const filteredOrders = statusFilter === "All"
+    ? orders
+    : orders.filter(o => {
+      if (statusFilter === "Pending") return o.status === 0;
+      if (statusFilter === "Completed") return o.status === 3;
+      if (statusFilter === "Cancelled") return o.status === 4;
+      return true;
+    });
 
   const columns = [
-    { title: "Order ID", dataIndex: "_id", key: "_id" },
+    {
+      title: "Order ID",
+      dataIndex: "_id",
+      key: "_id",
+      render: (text) => <span className="font-mono text-xs text-gray-500">{text}</span>
+    },
     {
       title: "Customer",
       dataIndex: ["user", "name"],
       key: "customer",
-      render: (_, record) => record.user?.name || "N/A",
+      render: (_, record) => (
+        <div>
+          <p className="font-medium text-gray-900">{record.user?.name || "Unknown"}</p>
+          <p className="text-xs text-gray-400">{record.user?.email || record.email}</p>
+        </div>
+      ),
     },
     {
-      title: "Email",
-      dataIndex: ["user", "email"],
-      key: "email",
-      render: (_, record) => record.user?.email || record.email,
-    },
-    {
-      title: "Products",
+      title: "Items",
       key: "products",
-      render: (_, record) =>
-        record.products?.map((p) => p.title).join(", ") || "N/A",
+      render: (_, record) => (
+        <span className="text-gray-600 text-sm">
+          {record.products?.length || 0} items
+        </span>
+      )
     },
     {
-      title: "Status",
+      title: "Status Flow",
       dataIndex: "status",
       key: "status",
-      filters: [
-        { text: "Pending", value: 0 },
-        { text: "Accepted", value: 1 },
-        { text: "Shipped", value: 2 },
-        { text: "Delivered", value: 3 },
-        { text: "Cancelled", value: 4 },
-      ],
-      onFilter: (value, record) => record.status === value,
-      render: (status) => (
-        <Tag color={statusColors[status]}>{statusLabels[status]}</Tag>
-      ),
+      width: 150,
+      render: (status) => <StatusProgress status={status} />,
     },
     {
       title: "Action",
       key: "action",
       render: (_, record) => {
-        const buttons = [];
+        if (record.status === 4) return <span className="text-gray-400 text-xs italic">Cancelled</span>;
+        if (record.status === 3) return <span className="text-green-600 text-xs font-medium">Completed</span>;
 
-        switch (record.status) {
-          case 0: // Pending
-            buttons.push(
-              <Button
-                key="accept"
-                type="primary"
-                onClick={() => updateStatus(record._id, 1)}
-                style={{ marginRight: 5, marginBottom: 5 }}
-              >
-                Accept
-              </Button>
-            );
-            buttons.push(
-              <Button
-                key="cancel"
-                danger
-                onClick={() => updateStatus(record._id, 4)}
-              >
-                Cancel
-              </Button>
-            );
-            break;
-          case 1: // Accepted / Ready to ship
-            buttons.push(
-              <Button
-                key="ship"
-                type="primary"
-                onClick={() => updateStatus(record._id, 2)}
-                style={{ marginRight: 5, marginBottom: 5 }}
-              >
-                Start Shipping
-              </Button>
-            );
-            buttons.push(
-              <Button
-                type="default"
-                onClick={() => updateStatus(record._id, 0)}
-                style={{ marginRight: 5, marginBottom: 5 }}
-              >Undo</Button>
-            );
-            break;
-          case 2: // Shipped
-            buttons.push(
-              <Button
-                key="deliver"
-                type="primary"
-                onClick={() => updateStatus(record._id, 3)}
-                style={{ marginRight: 5 , marginBottom: 5  }}
-              >
-                Deliver
-              </Button>
-            );
-            buttons.push(
-              <Button
-                type="default"
-                onClick={() => updateStatus(record._id, 1)}
-                style={{ marginRight: 5 }}
-              >Undo</Button>
-            );
-            break;
-          case 3: // Shipped
-            buttons.push(
-              <Button
-                type="default"
-                onClick={() => updateStatus(record._id, 2)}
-                style={{ marginRight: 5}}
-              >Undo</Button>
-            );
-            break;
-            case 4: 
-            buttons.push(
-              <Button
-                type="default"
-                onClick={() => updateStatus(record._id, 0)}
-                style={{ marginRight: 5}}
-              >Undo</Button>
-            );
-            break;
-          default: // Delivered or Cancelled
-            break;
-        }
+        return (
+          <div className="flex gap-2">
+            {record.status === 0 && (
+              <Button type="primary" size="small" onClick={() => updateStatus(record._id, 1)} className="bg-indigo-600">Accept</Button>
+            )}
+            {record.status === 1 && (
+              <Button type="primary" size="small" onClick={() => updateStatus(record._id, 2)} className="bg-purple-600">Ship</Button>
+            )}
+            {record.status === 2 && (
+              <Button type="primary" size="small" onClick={() => updateStatus(record._id, 3)} className="bg-green-600">Deliver</Button>
+            )}
 
-        return <div>{buttons}</div>;
+            <Popover
+              content={
+                <div className="flex flex-col gap-2">
+                  <Button size="small" danger onClick={() => updateStatus(record._id, 4)}>Cancel Order</Button>
+                  <Button size="small" onClick={() => updateStatus(record._id, Math.max(0, record.status - 1))}>Rewind Status</Button>
+                </div>
+              }
+              trigger="click"
+            >
+              <Button type="text" shape="circle" icon={<MoreHorizontal size={16} />} />
+            </Popover>
+          </div>
+        );
       },
     },
   ];
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl text-gray-600 py-4">Orders</h1>
-      <Table
-        rowKey="_id"
-        columns={columns}
-        dataSource={orders}
-        loading={loading}
-        pagination={{ pageSize: 7 }}
-        scroll={{ y: 700 }}
-      />
+    <div className="flex flex-col gap-6">
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Order Management</h1>
+          <p className="text-gray-500 text-sm mt-1">Track and update customer orders</p>
+        </div>
+
+        <Segmented
+          options={['All', 'Pending', 'Completed', 'Cancelled']}
+          value={statusFilter}
+          onChange={setStatusFilter}
+          className="bg-white shadow-sm p-1"
+        />
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <Table
+          className="custom-admin-table"
+          rowKey="_id"
+          columns={columns}
+          dataSource={filteredOrders}
+          loading={loading}
+          pagination={{ pageSize: 8 }}
+        />
+      </div>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Table, Tag, Button, Popconfirm, message } from "antd";
-import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { Table, Button, Popconfirm, message, Tooltip } from "antd";
+import { Edit2, Trash2, Plus, Package, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getAllProducts, deleteProduct } from "../api-service/product-service";
 
@@ -9,18 +9,12 @@ const ProductPage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch products from backend
   const fetchProducts = async () => {
     try {
       setLoading(true);
       const data = await getAllProducts();
-      console.log("Fetched data:", data); // <- see what you actually get
       setProducts(
-        Array.isArray(data.product)
-          ? data.product
-          : Array.isArray(data)
-          ? data
-          : []
+        Array.isArray(data.product) ? data.product : Array.isArray(data) ? data : []
       );
     } catch (err) {
       message.error(err.response?.data?.message || "Failed to fetch products");
@@ -33,7 +27,6 @@ const ProductPage = () => {
     fetchProducts();
   }, []);
 
-  // Delete product
   const handleDelete = async (id) => {
     try {
       await deleteProduct(id);
@@ -45,50 +38,77 @@ const ProductPage = () => {
   };
 
   const columns = [
-    { title: "ID", dataIndex: "_id", key: "_id" },
     {
-      title: "Image",
-      dataIndex: "img", // match the DB field
-      key: "img",
-      render: (img) => (
-        <img
-          src={img}
-          alt="product"
-          className="h-16 w-16 object-cover rounded-lg"
-        />
-      ),
+      title: "Product",
+      key: "product",
+      width: 300,
+      render: (_, record) => (
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden flex-shrink-0">
+            <img src={record.img} alt="" className="w-full h-full object-cover" />
+          </div>
+          <div>
+            <p className="font-medium text-gray-900 line-clamp-1">{record.title}</p>
+            <p className="text-xs text-gray-500 font-mono text-ellipsis overflow-hidden w-20 line-clamp-1">ID: {record._id}</p>
+          </div>
+        </div>
+      )
     },
-    { title: "Product Name", dataIndex: "title", key: "title" },
     {
       title: "Price",
       dataIndex: "oridinaryPrice",
-      key: "oridinaryPrice",
-      render: (price) => `$${price.toFixed(2)}`,
+      key: "price",
+      render: (price) => <span className="font-medium text-gray-700">${price.toFixed(2)}</span>,
     },
     {
-      title: "In Stock",
+      title: "Stock Status",
       dataIndex: "inStock",
-      key: "inStock",
-      render: (inStock) =>
-        inStock ? <Tag color="green">Yes</Tag> : <Tag color="red">No</Tag>,
+      key: "status",
+      render: (inStock) => {
+        // Logic can be refined if there's actual quantity number, assuming boolean for now
+        if (inStock) {
+          return (
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium border border-green-200">
+              <CheckCircle size={12} />
+              <span>In Stock</span>
+            </div>
+          );
+        } else {
+          return (
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 text-red-700 text-xs font-medium border border-red-200">
+              <XCircle size={12} />
+              <span>Out of Stock</span>
+            </div>
+          );
+        }
+      },
     },
     {
       title: "Action",
       key: "action",
+      width: 120,
       render: (_, record) => (
         <div className="flex gap-2">
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => navigate(`/admin/products/edit/${record._id}`)}
-            type="primary"
-          />
+          <Tooltip title="Edit Product">
+            <Button
+              className="flex items-center justify-center border-gray-200 text-gray-600 hover:text-indigo-600 hover:border-indigo-600 bg-white shadow-sm"
+              shape="circle"
+              icon={<Edit2 size={16} />}
+              onClick={() => navigate(`/admin/products/edit/${record._id}`)}
+            />
+          </Tooltip>
+
           <Popconfirm
-            title="Are you sure to delete this product?"
+            title="Delete this product?"
+            description="This action cannot be undone."
             onConfirm={() => handleDelete(record._id)}
-            okText="Yes"
-            cancelText="No"
+            okText="Delete"
+            okButtonProps={{ danger: true }}
+            cancelText="Cancel"
           >
-            <Button icon={<DeleteOutlined />} danger />
+            <Tooltip title="Delete">
+              <Button shape="circle" danger icon={<Trash2 size={16} />} className="flex items-center justify-center shadow-sm" />
+            </Tooltip>
           </Popconfirm>
         </div>
       ),
@@ -96,19 +116,36 @@ const ProductPage = () => {
   ];
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl text-gray-600 py-4">Products</h1>
-      <Table
-        rowKey="_id"
-        rowSelection={{}}
-        columns={columns}
-        dataSource={products}
-        loading={loading}
-        pagination={{ pageSize: 5 }}
-      />
-      <Button type="primary" onClick={() => navigate("/admin/products/add")}>
-        Create Product
-      </Button>
+    <div className="flex flex-col gap-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Products</h1>
+          <p className="text-gray-500 text-sm mt-1">Manage your product catalog and inventory</p>
+        </div>
+        <Button
+          type="primary"
+          icon={<Plus size={18} />}
+          onClick={() => navigate("/admin/products/add")}
+          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 border-none shadow-md shadow-indigo-200 h-10 px-5 font-medium"
+        >
+          Add Product
+        </Button>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <Table
+          className="custom-admin-table"
+          rowKey="_id"
+          columns={columns}
+          dataSource={products}
+          loading={loading}
+          pagination={{
+            pageSize: 8,
+            showTotal: (total) => `Total ${total} items`,
+            position: ['bottomRight']
+          }}
+        />
+      </div>
     </div>
   );
 };

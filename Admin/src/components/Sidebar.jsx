@@ -7,31 +7,34 @@ function Sidebar({ user, setUser }) {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   return (
-    <div className='flex'>
-      {/* Desktop sidebar */}
-      <div className="lg:flex hidden w-full h-full mt-5">
-        <MenuItems user={user} setUser={setUser} /> {/* pass separately */}
+    <>
+      {/* Desktop Sidebar */}
+      <div className="hidden lg:block w-72 h-full flex-shrink-0">
+        <MenuItems user={user} setUser={setUser} />
       </div>
 
-      {/* Mobile top bar */}
-      <div className="lg:hidden bg-gray-300 flex items-center p-2 px-4 shadow-md">
-        <Menu
-          size={24}
+      {/* Mobile Top Bar Hook */}
+      <div className="lg:hidden absolute top-4 left-4 z-50">
+        <button
           onClick={() => setShowMobileMenu(true)}
-          className="cursor-pointer hover:text-red-400"
-        />
+          className="p-2 bg-white rounded-md shadow-sm border border-gray-200 text-gray-700 active:scale-95 transition-transform"
+        >
+          <Menu size={24} />
+        </button>
       </div>
 
-      {/* Mobile drawer */}
+      {/* Mobile Drawer */}
       <Drawer
         open={showMobileMenu}
         placement="left"
         onClose={() => setShowMobileMenu(false)}
-        bodyStyle={{ padding: 0 }}
+        styles={{ body: { padding: 0 }, content: { backgroundColor: '#111827' } }}
+        width={280}
+        closeIcon={null}
       >
-        <MenuItems user={user} setUser={setUser} /> {/* also pass separately */}
+        <MenuItems user={user} setUser={setUser} />
       </Drawer>
-    </div>
+    </>
   );
 }
 

@@ -1,102 +1,90 @@
 import { Form, Input, Button, Checkbox, message } from "antd";
-import { UserOutlined, LockOutlined } from "@ant-design/icons";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { loginUser } from '../api-service/user-service.js'
 import Cookies from "js-cookie";
-
-// import { useDispatch, useSelector } from "react-redux";
-// import axios from "axios";
-// import { loginStart, loginSuccess, loginFailure } from "../redux/userRedux";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 
 function Login() {
-  // const dispatch = useDispatch();
-  // const { isFetching } = useSelector((state) => state.user);
+  const [loading, setloading] = useState(false);
+  const navigate = useNavigate();
 
-  // const onFinish = async (values) => {
-  //   dispatch(loginStart());
-  //   try {
-  //     const response = await axios.post("https://your-api.com/api/login", {
-  //       username: values.username,
-  //       password: values.password,
-  //     });
-
-  //     dispatch(loginSuccess(response.data.user));
-  //     message.success(`Welcome ${response.data.user.username}!`);
-  //   } catch (err) {
-  //     dispatch(loginFailure());
-  //     message.error(err.response?.data?.message || "Login failed");
-  //   }
-  // };
-
-  const [ loading, setloading] = useState(false);
-    const navigate = useNavigate();
-    const onFinish = async(values) => {
-      try {
-        setloading(true) ;
-        const response = await loginUser(values);
-        message.success(response.message);
-        Cookies.set("token", response.token);
-        navigate("/");
-      } catch (error) {
-        message.error(error.response?.data.message || error.message);
-      } finally{
-        setloading(false);
-      }
-    };
-
-  const onFinishFailed = (errorInfo) => {
-    console.log("Failed:", errorInfo);
+  const onFinish = async (values) => {
+    try {
+      setloading(true);
+      const response = await loginUser(values);
+      message.success(response.message);
+      Cookies.set("token", response.token);
+      navigate("/");
+    } catch (error) {
+      message.error(error.response?.data.message || error.message);
+    } finally {
+      setloading(false);
+    }
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100">
-      <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-md">
-        <h2 className="text-2xl font-semibold text-center mb-6">Login</h2>
+    <div className="min-h-screen bg-white flex flex-col">
+      <Navbar />
 
-        <Form
-          name="login"
-          initialValues={{ remember: true }}
-          onFinish={onFinish}
-          onFinishFailed={onFinishFailed}
-          autoComplete="on"
-          layout="vertical"
-        >
-          <Form.Item
-            label="Email"
-            name="email"
-            rules={[{ required: true, message: "Please input your username!" }]}
+      <div className="flex-1 flex items-center justify-center py-20 px-6">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <h1 className="font-serif text-3xl text-gray-900 mb-2">Welcome Back</h1>
+            <p className="text-gray-500">Sign in to your account</p>
+          </div>
+
+          <Form
+            name="login"
+            initialValues={{ remember: true }}
+            onFinish={onFinish}
+            layout="vertical"
+            size="large"
           >
-            <Input prefix={<UserOutlined />} placeholder="email" />
-          </Form.Item>
+            <Form.Item
+              name="email"
+              rules={[{ required: true, message: "Please enter your email" }]}
+            >
+              <Input placeholder="Email address" className="h-12" />
+            </Form.Item>
 
-          <Form.Item
-            label="Password"
-            name="password"
-            rules={[{ required: true, message: "Please input your password!" }]}
-          >
-            <Input.Password prefix={<LockOutlined />} placeholder="Password" />
-          </Form.Item>
+            <Form.Item
+              name="password"
+              rules={[{ required: true, message: "Please enter your password" }]}
+            >
+              <Input.Password placeholder="Password" className="h-12" />
+            </Form.Item>
 
-          <Form.Item name="remember" valuePropName="checked">
-            <Checkbox>Remember me</Checkbox>
-          </Form.Item>
+            <div className="flex justify-between items-center mb-6">
+              <Form.Item name="remember" valuePropName="checked" noStyle>
+                <Checkbox className="text-gray-600">Remember me</Checkbox>
+              </Form.Item>
+              <a className="text-sm text-[#c17f59] hover:underline" href="#">Forgot password?</a>
+            </div>
 
-          <Form.Item>
-            <Button type="primary" htmlType="submit" className="w-full" loading={loading}>
-              Log In
-            </Button>
-          </Form.Item>
-        </Form>
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                className="w-full h-12 text-sm font-medium"
+                loading={loading}
+              >
+                Sign In
+              </Button>
+            </Form.Item>
+          </Form>
 
-        <p className="mt-4 text-gray-700">
-          Don't have an account?{" "}
-          <Link to="/register" className="text-blue-500 hover:underline">
-            Register
-          </Link>
-        </p>
+          <p className="text-center text-gray-500 mt-6">
+            Don't have an account?{" "}
+            <Link to="/register" className="text-[#c17f59] hover:underline font-medium">
+              Create Account
+            </Link>
+          </p>
+        </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

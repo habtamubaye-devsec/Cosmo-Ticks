@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { message, Spin, Button, Form, InputNumber } from "antd";
-import { FaStar, FaShoppingCart } from "react-icons/fa";
+import { message, Tabs } from "antd";
+import { Star, Heart, Truck, RotateCcw, ShieldCheck } from "lucide-react";
 import { getProductById } from "../api-service/products-service";
 import { addToCart } from "../api-service/cart-service";
 import OrderModal from "../components/orderModals";
@@ -13,8 +13,8 @@ function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedQty, setSelectedQty] = useState(1);
-  const [form] = Form.useForm();
+  const [quantity, setQuantity] = useState(1);
+  const [selectedImage, setSelectedImage] = useState(0);
 
   const fetchProduct = async () => {
     try {
@@ -22,7 +22,7 @@ function ProductDetail() {
       const response = await getProductById(id);
       setProduct(response.product || null);
     } catch (error) {
-      message.error(error.message || "Failed to load product");
+      message.error("Failed to load product");
     } finally {
       setLoading(false);
     }
@@ -32,152 +32,206 @@ function ProductDetail() {
     fetchProduct();
   }, [id]);
 
-  if (loading)
-    return (
-      <Spin
-        tip="Loading product..."
-        className="mt-20 w-full flex justify-center"
-      />
-    );
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+    </div>
+  );
 
-  if (!product) return <p className="text-center mt-20">Product not found.</p>;
-
-  const avgRating =
-    product.ratings?.length > 0
-      ? product.ratings.reduce((sum, r) => sum + r.star, 0) / product.ratings.length
-      : 0;
+  if (!product) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <p className="text-gray-500">Product not found.</p>
+    </div>
+  );
 
   const handleAddToCart = async () => {
     try {
       await addToCart(product._id);
       message.success(`${product.title} added to cart`);
     } catch (error) {
-      message.error(error.response?.data?.message || error.message);
+      message.error("Could not add to cart");
     }
   };
 
-  const handleBuy = (values) => {
-    const qty = values.quantity;
-    if (qty < 1) {
-      message.error("Quantity must be at least 1");
-      return;
-    }
-    setSelectedQty(qty); // store quantity
-    setModalVisible(true); // open modal
-  };
+  const productImages = Array.isArray(product.img) ? product.img : [product.img];
+  const avgRating = product.ratings?.length > 0
+    ? (product.ratings.reduce((a, b) => a + b.star, 0) / product.ratings.length).toFixed(1)
+    : "4.8";
 
-  return (
-    <div className="flex flex-col min-h-screen">
-      <header><Navbar /></header>
-
-      <main className="flex-1 w-full">
-        <div className="max-w-6xl mx-auto p-6">
-          <div className="flex flex-col md:flex-row gap-6">
-            <div className="flex-1">
-              {Array.isArray(product.img) ? (
-                <div className="grid grid-cols-2 gap-2">
-                  {product.img.map((url, i) => (
-                    <img
-                      key={i}
-                      src={url}
-                      alt={product.title}
-                      className="w-full h-[200px] object-cover rounded-lg"
-                    />
+  const tabItems = [
+    {
+      key: '1',
+      label: 'Description',
+      children: (
+        <div className="text-gray-600 leading-relaxed py-4">
+          <p>{product.description}</p>
+        </div>
+      ),
+    },
+    {
+      key: '2',
+      label: 'Ingredients',
+      children: (
+        <div className="text-gray-600 leading-relaxed py-4">
+          <p>Clean, sustainable ingredients carefully selected for your skin.</p>
+          <ul className="list-disc list-inside mt-4 space-y-2">
+            <li>Hyaluronic Acid</li>
+            <li>Vitamin C</li>
+            <li>Niacinamide</li>
+            <li>Organic Aloe Vera</li>
+          </ul>
+        </div>
+      ),
+    },
+    {
+      key: '3',
+      label: `Reviews (${product.ratings?.length || 0})`,
+      children: (
+        <div className="py-4 space-y-4">
+          {(!product.ratings || product.ratings.length === 0) && (
+            <p className="text-gray-400 italic">No reviews yet. Be the first!</p>
+          )}
+          {product.ratings?.map((r, i) => (
+            <div key={i} className="border-b border-gray-100 pb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="flex text-yellow-400">
+                  {[...Array(5)].map((_, idx) => (
+                    <Star key={idx} size={14} fill={idx < r.star ? "currentColor" : "none"} />
                   ))}
                 </div>
-              ) : (
+                <span className="font-medium text-sm">{r.name}</span>
+              </div>
+              <p className="text-gray-600 text-sm">{r.comment}</p>
+            </div>
+          ))}
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-white">
+      <Navbar />
+
+      <main className="pt-24 pb-20">
+        <div className="container mx-auto px-6 max-w-7xl">
+          <div className="flex flex-col lg:flex-row gap-12 lg:gap-16">
+
+            {/* Gallery */}
+            <div className="lg:w-1/2">
+              <div className="aspect-square bg-[#f5f5f3] rounded-2xl overflow-hidden mb-4">
                 <img
-                  src={product.img}
+                  src={productImages[selectedImage]}
                   alt={product.title}
-                  className="w-full h-[400px] object-cover rounded-lg"
+                  className="w-full h-full object-cover"
                 />
-              )}
-              {product.video && (
-                <video controls className="w-full h-[300px] mt-4 rounded-lg">
-                  <source src={product.video} type="video/mp4" />
-                </video>
-              )}
+              </div>
+              <div className="flex gap-3 overflow-x-auto">
+                {productImages.map((img, idx) => (
+                  <button
+                    key={idx}
+                    className={`w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all ${selectedImage === idx ? 'border-gray-900' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                    onClick={() => setSelectedImage(idx)}
+                  >
+                    <img src={img} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="flex-1 flex flex-col gap-4">
-              <h1 className="text-3xl font-bold">{product.title}</h1>
-              <p className="text-gray-700">{product.description}</p>
-
-              <div className="flex items-center gap-4 mt-2">
-                <span className="text-xl font-bold">${product.oridinaryPrice}</span>
-                {product.discountedPrice && product.discountedPrice !== product.oridinaryPrice && (
-                  <span className="text-red-500 font-semibold line-through">${product.discountedPrice}</span>
-                )}
-              </div>
-
-              <p className={`mt-1 font-semibold ${product.inStock ? "text-green-600" : "text-red-600"}`}>
-                {product.inStock ? "In Stock" : "Out of Stock"}
+            {/* Product Info */}
+            <div className="lg:w-1/2">
+              <p className="text-sm text-[#c17f59] tracking-widest uppercase mb-2">
+                {product.category?.[0] || "Skincare"}
               </p>
 
-              <p><span className="font-semibold">Brand:</span> {product.brand}</p>
-              <p><span className="font-semibold">Category:</span> {product.category?.join(", ")}</p>
-              <p><span className="font-semibold">Concern:</span> {product.concern?.join(", ")}</p>
-              <p><span className="font-semibold">Skin Type:</span> {product.skinType}</p>
+              <h1 className="font-serif text-4xl text-gray-900 mb-4">{product.title}</h1>
 
-              <div className="flex items-center gap-2 mt-2">
-                <FaStar className="text-yellow-400" />
-                <span className="font-semibold">{avgRating.toFixed(1)} / 5</span>
-                <span className="text-gray-500">({product.ratings?.length || 0} reviews)</span>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="flex items-center gap-1">
+                  <div className="flex text-yellow-400">
+                    {[...Array(5)].map((_, i) => <Star key={i} size={16} fill="currentColor" />)}
+                  </div>
+                  <span className="text-sm text-gray-500 ml-1">{avgRating}</span>
+                </div>
+                <span className="text-sm text-gray-400">|</span>
+                <span className="text-sm text-gray-500">{product.ratings?.length || 0} reviews</span>
               </div>
 
-              <div className="flex flex-col gap-2 mt-4">
-                <Button
-                  type="primary"
-                  icon={<FaShoppingCart />}
-                  className="bg-blue-500 hover:bg-blue-600"
+              <p className="text-3xl font-medium text-gray-900 mb-6">
+                ${product.oridinaryPrice?.toFixed(2)}
+              </p>
+
+              <p className="text-gray-600 leading-relaxed mb-8">
+                {product.description?.substring(0, 200)}...
+              </p>
+
+              {/* Quantity & Buttons */}
+              <div className="flex items-center gap-4 mb-6">
+                <div className="flex items-center border border-gray-200 rounded-full">
+                  <button
+                    className="px-4 py-2 text-lg"
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  >
+                    -
+                  </button>
+                  <span className="px-4 font-medium">{quantity}</span>
+                  <button
+                    className="px-4 py-2 text-lg"
+                    onClick={() => setQuantity(quantity + 1)}
+                  >
+                    +
+                  </button>
+                </div>
+
+                <button
                   onClick={handleAddToCart}
+                  className="flex-1 py-3.5 bg-gray-900 text-white rounded-full font-medium hover:bg-gray-800 transition-colors"
                 >
                   Add to Cart
-                </Button>
+                </button>
 
-                <Form form={form} layout="inline" onFinish={handleBuy} initialValues={{ quantity: 1 }} className="mt-2">
-                  <Form.Item name="quantity" rules={[
-                    { required: true, message: "Please enter quantity" },
-                    { type: "number", min: 1, message: "Quantity must be at least 1" }
-                  ]}>
-                    <InputNumber min={1} />
-                  </Form.Item>
-                  <Form.Item>
-                    <Button type="primary" htmlType="submit" icon={<FaShoppingCart />} className="bg-green-500 hover:bg-green-600">
-                      Buy
-                    </Button>
-                  </Form.Item>
-                </Form>
+                <button className="w-12 h-12 border border-gray-200 rounded-full flex items-center justify-center hover:border-gray-400 transition-colors">
+                  <Heart size={20} className="text-gray-600" />
+                </button>
               </div>
-            </div>
-          </div>
 
-          <div className="mt-10">
-            <h2 className="text-2xl font-bold mb-4">Reviews</h2>
-            {(!product.ratings || product.ratings.length === 0) && <p>No reviews yet.</p>}
-            {product.ratings?.map((r) => (
-              <div key={r._id || Math.random()} className="border-b py-2">
-                <div className="flex items-center gap-2">
-                  <FaStar className="text-yellow-400" />
-                  <span className="font-semibold">{r.star} / 5</span>
-                  <span className="text-gray-600">by {r.name}</span>
+              <button
+                onClick={() => setModalVisible(true)}
+                className="w-full py-3.5 border border-gray-900 text-gray-900 rounded-full font-medium hover:bg-gray-900 hover:text-white transition-colors mb-8"
+              >
+                Buy Now
+              </button>
+
+              {/* Trust Badges */}
+              <div className="grid grid-cols-3 gap-4 py-6 border-t border-gray-100">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Truck size={18} /> Free Shipping
                 </div>
-                <p className="ml-6">{r.comment}</p>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <RotateCcw size={18} /> Easy Returns
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <ShieldCheck size={18} /> Secure Checkout
+                </div>
               </div>
-            ))}
+
+              {/* Tabs */}
+              <Tabs items={tabItems} className="mt-6" />
+            </div>
           </div>
         </div>
       </main>
 
-      <footer><Footer /></footer>
+      <Footer />
 
       {modalVisible && (
         <OrderModal
           visible={modalVisible}
           onClose={() => setModalVisible(false)}
           product={product}
-          quantity={selectedQty}
-          total={product.oridinaryPrice * selectedQty}
+          quantity={quantity}
+          total={product.oridinaryPrice * quantity}
         />
       )}
     </div>
