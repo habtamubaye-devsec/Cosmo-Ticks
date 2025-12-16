@@ -10,6 +10,9 @@ import bannerRoutes from "./src/Route/bannerRoute.js";
 import userRoutes from "./src/Route/userRoute.js";
 import cartRoutes from './src/Route/cartRoute.js'
 import orderRoutes from "./src/Route/orderRoutes.js";
+import wishlistRoutes from "./src/Route/wishlistRoute.js";
+import passport from "./src/config/passport.js";
+
 
 dotenv.config();
 
@@ -23,6 +26,7 @@ dbConnection();
 app.use(express.json()); // Parse JSON bodies
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(cookieParser()); // Initialize cookie-parser
+app.use(passport.initialize()); // Initialize Passport
 
 // Routes
 app.use("/api/v1/auth", authRoutes);
@@ -31,6 +35,7 @@ app.use("/api/v1/banner", bannerRoutes);
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/cart", cartRoutes);
 app.use("/api/v1/order", orderRoutes);
+app.use("/api/v1/wishlist", wishlistRoutes);
 
 // Error handlers (should come last)
 app.use(notFound);
