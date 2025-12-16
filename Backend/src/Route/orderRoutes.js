@@ -7,7 +7,7 @@ import {
   createSingleOrder,
   createCartOrder,
 } from "../Controller/order.controller.js";
-import validateToken from "../Middleware/auth.middleware.js";
+import { validateToken } from "../Middleware/auth.middleware.js";
 
 const router = express.Router();
 

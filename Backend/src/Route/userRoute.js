@@ -5,13 +5,13 @@ import {
   getUser,
   getAllUser,
 } from "../Controller/user.controller.js";
-import validateToken from "../Middleware/auth.middleware.js";
+import { validateAdmin, validateToken } from "../Middleware/auth.middleware.js";
 
 const router = express.Router();
 
 router.put("/update/:id", validateToken, updateUser);
-router.delete("/delete/:id", validateToken, deleteUser);
-router.get("/:id", validateToken, getUser);
-router.get("/", validateToken, getAllUser);
+router.delete("/delete/:id", validateAdmin, deleteUser);
+router.get("/:id", validateAdmin, getUser);
+router.get("/", validateAdmin, getAllUser);
 
 export default router;

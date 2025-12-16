@@ -7,19 +7,19 @@ import {
   getAllProduct,
   ratingProduct,
 } from "../Controller/product.controller.js";
-import validateToken from "../Middleware/auth.middleware.js";
+import { validateToken, validateAdmin } from "../Middleware/auth.middleware.js";
 import upload from "../Middleware/uploadImg.js";
 
 const router = express.Router();
 
 // Create a product (with images)
-router.post("/create", upload.array("media", 5), createProduct);
+router.post("/create", validateAdmin, upload.array("media", 5), createProduct);
 
 // Update product (optionally with new images)
-router.put("/update/:id", upload.array("media", 5), updateProduct);
+router.put("/update/:id", validateAdmin, upload.array("media", 5), updateProduct);
 
 // Delete a product
-router.delete("/delete/:id", validateToken, deleteProduct);
+router.delete("/delete/:id", validateAdmin, deleteProduct);
 
 // Get a single product
 router.get("/:id", getProduct);
