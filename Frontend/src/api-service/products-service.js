@@ -11,7 +11,14 @@ export const getAllProducts = async () => {
   return response.data;
 };
 
+
 export const getProductById = async (id) => {
   const response = await API.get(`products/${id}`);
+  return response.data;
+};
+
+// Add review
+export const addProductReview = async (id, reviewData) => {
+  const response = await API.post(`/products/${id}/reviews`, reviewData);
   return response.data;
 };
