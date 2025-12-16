@@ -69,6 +69,34 @@ const loginUser = asyncHandler(async (req, res) => {
   }
 });
 
+// OAuth Callback Ha    ndler
+const oauthCallback = asyncHandler(async (req, res) => {
+  try {
+    // User is attached to req.user by Passport
+    const user = req.user;
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { _id: user._id, email: user.email },
+      process.env.TOKEN_SECRET,
+      { expiresIn: "5h" }
+    );
+
+    // Set cookie and redirect to frontend
+    res
+      .cookie("token", token, {
+        expires: new Date(Date.now() + 8 * 3600000),
+        httpOnly: true,
+        secure: process.env.NODE_ENV !== "development",
+        sameSite: "Strict",
+      })
+      .redirect(`${process.env.FRONTEND_URL || "http://localhost:5173"}/auth/success?token=${token}`);
+  } catch (error) {
+    res.redirect(`${process.env.FRONTEND_URL || "http://localhost:5173"}/auth/failure`);
+  }
+});
+
+
 const currentUser = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select("-password");
@@ -92,4 +120,4 @@ const logout = asyncHandler(async (req, res) => {
   res.status(200).json({ message: "Logout Successfully" });
 });
 
-export { registerUser, loginUser, currentUser, logout };
+export { registerUser, loginUser, currentUser, logout, oauthCallback };
