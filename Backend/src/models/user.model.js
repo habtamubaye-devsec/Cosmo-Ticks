@@ -16,6 +16,15 @@ const userSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    googleId: {
+      type: String,
+    },
+    facebookId: {
+      type: String,
+    },
+    avatar: {
+      type: String,
+    },
     address: {
       type: String,
     },
