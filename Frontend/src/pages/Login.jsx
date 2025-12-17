@@ -5,6 +5,7 @@ import { loginUser } from '../api-service/user-service.js'
 import Cookies from "js-cookie";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { Facebook, Chrome } from "lucide-react";
 
 function Login() {
   const [loading, setloading] = useState(false);
@@ -22,6 +23,16 @@ function Login() {
     } finally {
       setloading(false);
     }
+  };
+
+  const handleGoogleLogin = () => {
+    // Redirect to backend Google OAuth endpoint
+    window.location.href = '/api/v1/auth/google';
+  };
+
+  const handleFacebookLogin = () => {
+    // Redirect to backend Facebook OAuth endpoint
+    window.location.href = '/api/v1/auth/facebook';
   };
 
   return (
@@ -74,6 +85,32 @@ function Login() {
               </Button>
             </Form.Item>
           </Form>
+
+          <div className="relative my-8">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-gray-200"></span>
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-gray-500">Or continue with</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={handleGoogleLogin}
+              className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Chrome size={20} className="text-gray-600" />
+              <span className="text-sm font-medium text-gray-700">Google</span>
+            </button>
+            <button
+              onClick={handleFacebookLogin}
+              className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Facebook size={20} className="text-blue-600" />
+              <span className="text-sm font-medium text-gray-700">Facebook</span>
+            </button>
+          </div>
 
           <p className="text-center text-gray-500 mt-6">
             Don't have an account?{" "}
