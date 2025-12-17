@@ -9,8 +9,9 @@ import {
 import OrderModal from "../components/orderModals";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { Trash2, ShoppingBag, ArrowRight, Minus, Plus } from "lucide-react";
+import { Trash2, ShoppingBag, ArrowRight, Minus, Plus, Heart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useShop } from "../context/ShopContext";
 
 function Cart() {
   const [cartItems, setCartItems] = useState([]);
@@ -18,6 +19,8 @@ function Cart() {
   const [loading, setLoading] = useState(false);
   const [checkoutModal, setCheckoutModal] = useState(false);
   const navigate = useNavigate();
+
+  const { refreshShop, handleAddToWishlist } = useShop();
 
   const getdata = async () => {
     try {
@@ -50,6 +53,7 @@ function Cart() {
         return newQty;
       });
       message.success("Item removed");
+      refreshShop(); // Update global cart count
     } catch (error) {
       message.error("Could not remove item");
     }
@@ -60,6 +64,8 @@ function Cart() {
     setQuantities((prev) => ({ ...prev, [id]: newQty }));
     try {
       await updateCartItem(id, newQty);
+      // Debounced refresh could be better but this is fine for now
+      refreshShop();
     } catch (error) {
       getdata();
     }
@@ -71,6 +77,7 @@ function Cart() {
       setCartItems([]);
       setQuantities({});
       message.success("Cart cleared");
+      refreshShop(); // Update global cart count
     } catch (error) {
       message.error(error.message);
     }
@@ -97,7 +104,7 @@ function Cart() {
               <p className="text-gray-500 mb-8">Looks like you haven't added anything yet.</p>
               <button
                 onClick={() => navigate('/')}
-                className="px-8 py-3 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors"
+                className="px-8 py-3 bg-gray-900 !text-white rounded-full hover:bg-gray-800 transition-colors"
               >
                 Continue Shopping
               </button>
@@ -145,12 +152,26 @@ function Cart() {
                           </button>
                         </div>
 
-                        <button
-                          onClick={() => removeItem(item.product._id)}
-                          className="text-gray-400 hover:text-red-500 transition-colors"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={async () => {
+                              await handleAddToWishlist(item.product._id);
+                              await removeItem(item.product._id);
+                              message.success("Moved to wishlist");
+                            }}
+                            className="text-gray-400 hover:text-[#c17f59] transition-colors p-2"
+                            title="Move to Wishlist"
+                          >
+                            <Heart size={18} />
+                          </button>
+                          <button
+                            onClick={() => removeItem(item.product._id)}
+                            className="text-gray-400 hover:text-red-500 transition-colors p-2"
+                            title="Remove"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -187,7 +208,7 @@ function Cart() {
 
                   <button
                     onClick={() => setCheckoutModal(true)}
-                    className="w-full py-3.5 bg-gray-900 text-white rounded-full font-medium flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
+                    className="w-full py-3.5 bg-gray-900 !text-white rounded-full font-medium flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
                   >
                     Checkout <ArrowRight size={18} />
                   </button>
