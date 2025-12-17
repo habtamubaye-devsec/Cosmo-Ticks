@@ -27,12 +27,12 @@ function Banner() {
           <div className="flex gap-4">
             <button
               onClick={() => navigate("/category/skincare")}
-              className="px-10 py-4 bg-gray-900 text-white hover:bg-black transition-all rounded-full text-base font-medium shadow-lg hover:shadow-xl hover:-translate-y-1"
+              className="px-10 py-4 !text-white bg-gray-900 hover:bg-black transition-all rounded-full text-base font-medium shadow-lg hover:shadow-xl hover:-translate-y-1 flex items-center justify-center whitespace-nowrap"
             >
               Shop Now
             </button>
             <button
-              className="px-10 py-4 bg-white border border-gray-200 text-gray-900 hover:border-gray-900 transition-all rounded-full text-base font-medium"
+              className="px-10 py-4 bg-white border border-gray-200 text-gray-900 hover:border-gray-900 transition-all rounded-full text-base font-medium flex items-center justify-center whitespace-nowrap"
             >
               Find Your Match
             </button>
