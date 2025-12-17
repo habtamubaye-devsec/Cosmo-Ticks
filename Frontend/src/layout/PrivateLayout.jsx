@@ -27,7 +27,7 @@ function PrivateLayout() {
     fetchUser();
   }, []);
 
-  if (loading || user) {
+  if (loading) {
     return (
       <div className="flex justify-center items-center h-screen w-screen">
         <Spin size="large" tip="Loading..." />
