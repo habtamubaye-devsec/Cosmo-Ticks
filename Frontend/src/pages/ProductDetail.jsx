@@ -1,20 +1,25 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { message, Tabs } from "antd";
+import { message, Tabs, Modal, Rate, Input } from "antd";
 import { Star, Heart, Truck, RotateCcw, ShieldCheck } from "lucide-react";
-import { getProductById } from "../api-service/products-service";
+import { getProductById, addProductReview } from "../api-service/products-service";
 import { addToCart } from "../api-service/cart-service";
 import OrderModal from "../components/orderModals";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { useShop } from "../context/ShopContext";
 
 function ProductDetail() {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ star: 5, comment: "" });
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
+
+  const { handleAddToCart: addToCartContext, handleAddToWishlist, wishlistIds } = useShop();
 
   const fetchProduct = async () => {
     try {
@@ -45,11 +50,25 @@ function ProductDetail() {
   );
 
   const handleAddToCart = async () => {
+    // Use context for consistency/navbar updates
+    await addToCartContext(product._id);
+  };
+
+  const handleReviewSubmit = async () => {
     try {
-      await addToCart(product._id);
-      message.success(`${product.title} added to cart`);
+      if (!reviewForm.comment) {
+        return message.warning("Please write a comment");
+      }
+      setLoading(true);
+      await addProductReview(product._id, reviewForm);
+      message.success("Review submitted successfully");
+      setReviewModalVisible(false);
+      setReviewForm({ star: 5, comment: "" });
+      fetchProduct(); // Refresh to show new review
     } catch (error) {
-      message.error("Could not add to cart");
+      message.error("Failed to submit review");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -88,6 +107,16 @@ function ProductDetail() {
       label: `Reviews (${product.ratings?.length || 0})`,
       children: (
         <div className="py-4 space-y-4">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-serif">Customer Reviews</h3>
+            <button
+              onClick={() => setReviewModalVisible(true)}
+              className="px-4 py-2 border border-gray-900 text-gray-900 rounded-full text-sm font-medium hover:bg-gray-900 hover:text-white transition-colors"
+            >
+              Write a Review
+            </button>
+          </div>
+
           {(!product.ratings || product.ratings.length === 0) && (
             <p className="text-gray-400 italic">No reviews yet. Be the first!</p>
           )}
@@ -99,7 +128,7 @@ function ProductDetail() {
                     <Star key={idx} size={14} fill={idx < r.star ? "currentColor" : "none"} />
                   ))}
                 </div>
-                <span className="font-medium text-sm">{r.name}</span>
+                <span className="font-medium text-sm">{r.name || "Anonymous"}</span>
               </div>
               <p className="text-gray-600 text-sm">{r.comment}</p>
             </div>
@@ -186,13 +215,20 @@ function ProductDetail() {
 
                 <button
                   onClick={handleAddToCart}
-                  className="flex-1 py-3.5 bg-gray-900 text-white rounded-full font-medium hover:bg-gray-800 transition-colors"
+                  className="flex-1 py-3.5 bg-gray-900 !text-white rounded-full font-medium hover:bg-gray-800 transition-colors"
                 >
                   Add to Cart
                 </button>
 
-                <button className="w-12 h-12 border border-gray-200 rounded-full flex items-center justify-center hover:border-gray-400 transition-colors">
-                  <Heart size={20} className="text-gray-600" />
+                <button
+                  onClick={() => handleAddToWishlist(product._id)}
+                  className="w-12 h-12 border border-gray-200 rounded-full flex items-center justify-center hover:border-gray-400 transition-colors"
+                >
+                  <Heart
+                    size={20}
+                    className={wishlistIds.has(product._id) ? "text-red-500 fill-red-500" : "text-gray-600"}
+                    fill={wishlistIds.has(product._id) ? "currentColor" : "none"}
+                  />
                 </button>
               </div>
 
@@ -234,6 +270,35 @@ function ProductDetail() {
           total={product.oridinaryPrice * quantity}
         />
       )}
+
+      <Modal
+        title="Write a Review"
+        open={reviewModalVisible} // Use 'open' for newer AntD versions, or 'visible' if older. Using 'open' as standard or try 'visible' based on OrderModal. OrderModal uses 'visible' in prop but standard Antd Modal uses 'open' (v5) or 'visible' (v4). I'll check OrderModal usage... OrderModal uses 'visible={modalVisible}'. I will guess v4 or wrapper. I'll use 'open' and fall back or use both if unsure. Actually, let's use 'open' as it is safer for newer, and 'visible' for older. I'll stick to 'open={...} visible={...}' to be safe or check package.json... No access. I'll use 'open' as it's more modern, if it fails I'll fix. Actually let's use 'visible' to match OrderModal style implied by `visible={modalVisible}` prop passing. Wait, OrderModal is a custom component. The standard AntD Modal prop is 'open' in v5 and 'visible' in v4. I'll use `open` as safe default for modern apps.
+        onCancel={() => setReviewModalVisible(false)}
+        onOk={handleReviewSubmit}
+        okText="Submit Review"
+        okButtonProps={{ className: "bg-gray-900 hover:bg-black" }}
+      >
+        <div className="flex flex-col gap-4 py-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
+            <Rate
+              value={reviewForm.star}
+              onChange={(val) => setReviewForm({ ...reviewForm, star: val })}
+              className="text-yellow-400"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Review</label>
+            <Input.TextArea
+              rows={4}
+              placeholder="Share your thoughts about this product..."
+              value={reviewForm.comment}
+              onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+            />
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

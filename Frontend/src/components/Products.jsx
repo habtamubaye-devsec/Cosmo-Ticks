@@ -1,18 +1,19 @@
 import { useState, useEffect } from "react";
-import { message } from "antd";
 import { useNavigate } from "react-router-dom";
 import { getAllProducts } from "../api-service/products-service";
-import { addToCart } from "../api-service/cart-service";
-import { Heart, Star, Plus } from "lucide-react";
+import { Heart, Plus, Star } from "lucide-react";
+import { useShop } from "../context/ShopContext";
 
 function Products() {
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState([]);
   const navigate = useNavigate();
+  const { handleAddToCart, handleAddToWishlist, wishlistIds } = useShop();
 
-  const getProducts = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
+      // Note: getAllProducts fetches everything. Optimally we'd paginate.
       const response = await getAllProducts();
       setProducts(response.product || []);
     } catch (error) {
@@ -23,18 +24,8 @@ function Products() {
   };
 
   useEffect(() => {
-    getProducts();
+    fetchData();
   }, []);
-
-  const handleAddToCart = async (product, e) => {
-    e.stopPropagation();
-    try {
-      await addToCart(product._id);
-      message.success(`${product.title} added to cart`);
-    } catch (error) {
-      message.error("Could not add to cart");
-    }
-  };
 
   const getBadges = (index) => {
     const badgeOptions = [
@@ -77,7 +68,6 @@ function Products() {
                   className="w-full h-full object-cover mix-blend-multiply transition-transform duration-700 group-hover:scale-105"
                 />
 
-                {/* Badges */}
                 <div className="absolute top-4 left-4 flex flex-col gap-2">
                   {getBadges(index).map((badge, i) => (
                     <span
@@ -94,18 +84,25 @@ function Products() {
                   className="absolute top-4 right-4 w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-all hover:scale-110"
                   onClick={(e) => {
                     e.stopPropagation();
-                    message.info("Added to wishlist");
+                    handleAddToWishlist(product._id);
                   }}
                 >
-                  <Heart size={16} className="text-gray-900" />
+                  <Heart
+                    size={16}
+                    className={wishlistIds.has(product._id) ? "text-red-500 fill-red-500" : "text-gray-900"}
+                    fill={wishlistIds.has(product._id) ? "currentColor" : "none"}
+                  />
                 </button>
 
                 {/* Quick Add Button (Visible on Hover) */}
                 <button
-                  onClick={(e) => handleAddToCart(product, e)}
-                  className="absolute bottom-4 right-4 w-10 h-10 bg-gray-900 text-white rounded-full flex items-center justify-center opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg hover:bg-black"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddToCart(product._id);
+                  }}
+                  className="absolute bottom-4 right-4 w-10 h-10 bg-gray-900 !text-white rounded-full flex items-center justify-center opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg hover:bg-black"
                 >
-                  <Plus size={20} />
+                  <Plus size={20} className="text-white" />
                 </button>
               </div>
 
