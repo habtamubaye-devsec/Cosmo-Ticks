@@ -3,9 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { message } from "antd";
 import { Heart, Star, Plus, Filter } from "lucide-react";
 import { getAllProducts } from "../api-service/products-service";
-import { addToCart } from "../api-service/cart-service";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { useShop } from "../context/ShopContext";
 
 function Shop() {
     const { category, subcategory } = useParams();
@@ -13,6 +13,7 @@ function Shop() {
     const [loading, setLoading] = useState(true);
     const [products, setProducts] = useState([]);
     const [filteredProducts, setFilteredProducts] = useState([]);
+    const { handleAddToCart: addToCartContext, handleAddToWishlist, wishlistIds } = useShop();
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -53,17 +54,6 @@ function Shop() {
             setFilteredProducts(filtered);
         }
     }, [category, subcategory, products]);
-
-    const handleAddToCart = async (product, e) => {
-        e.stopPropagation();
-        try {
-            await addToCart(product._id);
-            message.success(`${product.title} added to bag`);
-        } catch (error) {
-            // Fallback for demo if not logged in
-            message.success(`${product.title} added to bag`);
-        }
-    };
 
     const getBadges = (index) => {
         // Simple deterministic badge assignment
@@ -134,16 +124,26 @@ function Shop() {
 
                                     <button
                                         className="absolute top-4 right-4 w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition-all z-10"
-                                        onClick={(e) => { e.stopPropagation(); message.info("Added to wishlist"); }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleAddToWishlist(product._id);
+                                        }}
                                     >
-                                        <Heart size={16} className="text-gray-900" />
+                                        <Heart
+                                            size={16}
+                                            className={wishlistIds.has(product._id) ? "text-red-500 fill-red-500" : "text-gray-900"}
+                                            fill={wishlistIds.has(product._id) ? "currentColor" : "none"}
+                                        />
                                     </button>
 
                                     <button
-                                        onClick={(e) => handleAddToCart(product, e)}
-                                        className="absolute bottom-4 right-4 w-10 h-10 bg-gray-900 text-white rounded-full flex items-center justify-center opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg hover:bg-black z-10"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            addToCartContext(product._id);
+                                        }}
+                                        className="absolute bottom-4 right-4 w-10 h-10 bg-gray-900 !text-white rounded-full flex items-center justify-center opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg hover:bg-black z-10"
                                     >
-                                        <Plus size={20} />
+                                        <Plus size={20} className="text-white" />
                                     </button>
                                 </div>
 
@@ -169,7 +169,7 @@ function Shop() {
                         <p className="text-xl text-gray-400 font-serif mb-4">No products found in this category.</p>
                         <button
                             onClick={() => navigate('/category/skincare')}
-                            className="px-8 py-3 bg-gray-900 text-white rounded-full hover:bg-gray-800"
+                            className="px-8 py-3 bg-gray-900 !text-white rounded-full hover:bg-gray-800"
                         >
                             Browse Skincare
                         </button>
