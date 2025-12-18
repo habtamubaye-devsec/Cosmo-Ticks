@@ -12,6 +12,7 @@ import cartRoutes from './src/Route/cartRoute.js'
 import orderRoutes from "./src/Route/orderRoutes.js";
 import wishlistRoutes from "./src/Route/wishlistRoute.js";
 import categoryRoutes from "./src/Route/categoryRoute.js";
+import { handleStripeWebhook } from "./src/Controller/order.controller.js";
 import passport from "./src/config/passport.js";
 
 
@@ -22,6 +23,13 @@ const PORT = process.env.PORT || 8001;
 
 // Connect to DB
 dbConnection();
+
+// ✅ 1. RAW body ONLY for Stripe webhook
+app.post(
+  "/api/v1/order/webhook",
+  express.raw({ type: "application/json" }),
+  handleStripeWebhook
+);
 
 // Middleware
 app.use(express.json()); // Parse JSON bodies

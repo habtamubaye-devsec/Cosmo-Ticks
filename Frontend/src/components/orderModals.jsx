@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Modal, Button, Form, Input, message } from "antd";
-import { createSingleOrderService } from "../api-service/order-service";
+import { createSingleCheckoutSessionService } from "../api-service/order-service";
 import { removeCartItemService } from "../api-service/cart-service";
 
 function OrderModal({ visible, onClose, product, quantity, total, refreshCart, productId }) {

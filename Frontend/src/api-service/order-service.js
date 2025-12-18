@@ -1,39 +1,37 @@
 import axios from "axios";
 
-// Create Axios instance with base URL
 const API = axios.create({
   baseURL: "http://localhost:8000/api/v1/order",
-  withCredentials: true, // send cookies automatically
+  withCredentials: true,
 });
-// Multiple items (cart)
-export const createCartOrderService = async (orderData) => {
+
+// ------------------- CREATE SINGLE PRODUCT CHECKOUT SESSION -------------------
+export const createSingleCheckoutSessionService = async (productId, quantity) => {
+  const res = await axios.post(
+    `http://localhost:8000/api/v1/order/checkout/single/${productId}`,
+    { quantity },
+    { withCredentials: true }
+  );
+  return res.data;
+};
+
+
+// ------------------- CREATE CART CHECKOUT SESSION -------------------
+export const createCartCheckoutSessionService = async (products) => {
   try {
-    const response = await API.post("/order/cart", orderData);
-    return response.data;
+    const response = await API.post("/checkout/cart", { products });
+    return response.data; // { success: true, url: "<Stripe Checkout URL>" }
   } catch (error) {
-    throw error;
+    throw error.response?.data || error;
   }
 };
 
-// Single item
-export const createSingleOrderService = async (orderData) => {
-  try {
-    const response = await API.post("/create-single", orderData);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-};
-
+// ------------------- GET USER ORDERS -------------------
 export const getUserOrder = async (userId) => {
   try {
-    const response = await API.get(`/${userId}`); // adjust endpoint as needed
-    console.log("API Response:", response.data); // debug
-
-    // Return the orders array from the response
+    const response = await API.get(`/user/${userId}`);
     return response.data.orders || [];
   } catch (error) {
-    console.error("Failed to fetch orders:", error.response || error);
-    throw error;
+    throw error.response?.data || error;
   }
 };

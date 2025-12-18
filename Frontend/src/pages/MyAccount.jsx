@@ -11,6 +11,8 @@ import {
 import { useLocation } from "react-router-dom";
 import { getCurrentUser } from "../api-service/user-service.js";
 import { getUserOrder } from "../api-service/order-service.js";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 
 const statusLabels = {
   0: "Pending",
@@ -133,84 +135,106 @@ function MyAccount() {
       title: "Price",
       dataIndex: "price",
       key: "price",
-      render: (p) => `$${p.toFixed(2)}`,
+      render: (p) => `$${Number(p || 0).toFixed(2)}`,
     },
   ];
 
   const mappedOrders = orders.map((order) => ({
     key: order._id,
-    productName: order.products.map((p) => p.title).join(", ") || "No products",
-    productImg: order.products[0]?.img?.[0] || null, // replace `image` with actual field from your API
+    productName:
+      order.products
+        ?.map((item) => item?.product?.title)
+        .filter(Boolean)
+        .join(", ") || "No products",
+    productImg: order.products?.[0]?.product?.img?.[0] || order.products?.[0]?.product?.img || null,
     status: statusLabels[order.status],
-    quantity: order.products.length,
-    price: order.total,
+    quantity:
+      order.products?.reduce((sum, item) => sum + (item?.quantity || 0), 0) || 0,
+    price: Number(order.total || 0),
   }));
 
   if (!user) return <Spin tip="Loading user..." className="mx-auto mt-20" />;
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">My Account</h1>
+    <div className="min-h-screen bg-white">
+      <Navbar />
 
-      <Tabs
-        defaultActiveKey={defaultTab}
-        items={[
-          {
-            key: "profile",
-            label: (
-              <span className="flex items-center gap-2">
-                <FaUser /> Profile
-              </span>
-            ),
-            children: (
-              <Card>
-                <h2 className="text-lg font-semibold mb-4">Profile Details</h2>
-                <p>
-                  <strong>Name:</strong> {user?.name}
-                </p>
-                <p>
-                  <strong>Email:</strong> {user?.email}
-                </p>
-                <p className="flex items-center gap-2">
-                  <strong>Password:</strong>{" "}
-                  <span className="tracking-widest">••••••••</span>
-                  <Button
-                    size="small"
-                    type="link"
-                    icon={<FaLock />}
-                    onClick={() => message.info("Change password coming soon!")}
-                  >
-                    Change
-                  </Button>
-                </p>
-              </Card>
-            ),
-          },
-          {
-            key: "orders",
-            label: (
-              <span className="flex items-center gap-2">
-                <FaBox /> Orders
-              </span>
-            ),
-            children: (
-              <Card>
-                <h2 className="text-lg font-semibold mb-4">My Orders</h2>
-                {loading ? (
-                  <Spin tip="Loading orders..." />
-                ) : (
-                  <Table
-                    rowKey="key"
-                    dataSource={mappedOrders}
-                    columns={orderColumns}
-                    pagination={false}
-                  />
-                )}
-              </Card>
-            ),
-          },
-        ]}
-      />
+      <main className="pt-24 pb-20">
+        <div className="container mx-auto px-6 max-w-6xl">
+          <h1 className="font-serif text-4xl text-gray-900 mb-10">My Account</h1>
+
+          <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
+            <Tabs
+              defaultActiveKey={defaultTab}
+              tabBarStyle={{ margin: 0, paddingLeft: 24, paddingRight: 24 }}
+              items={[
+                {
+                  key: "profile",
+                  label: (
+                    <span className="flex items-center gap-2">
+                      <FaUser /> Profile
+                    </span>
+                  ),
+                  children: (
+                    <div className="p-6">
+                      <Card className="rounded-2xl border border-gray-100 shadow-sm">
+                        <h2 className="font-serif text-xl text-gray-900 mb-4">Profile Details</h2>
+                        <div className="space-y-2 text-gray-700">
+                          <p>
+                            <span className="text-gray-500">Name:</span> {user?.name}
+                          </p>
+                          <p>
+                            <span className="text-gray-500">Email:</span> {user?.email}
+                          </p>
+                          <p className="flex items-center gap-2">
+                            <span className="text-gray-500">Password:</span>
+                            <span className="tracking-widest">••••••••</span>
+                            <Button
+                              size="small"
+                              type="link"
+                              icon={<FaLock />}
+                              onClick={() => message.info("Change password coming soon!")}
+                            >
+                              Change
+                            </Button>
+                          </p>
+                        </div>
+                      </Card>
+                    </div>
+                  ),
+                },
+                {
+                  key: "orders",
+                  label: (
+                    <span className="flex items-center gap-2">
+                      <FaBox /> Orders
+                    </span>
+                  ),
+                  children: (
+                    <div className="p-6">
+                      <Card className="rounded-2xl border border-gray-100 shadow-sm">
+                        <h2 className="font-serif text-xl text-gray-900 mb-4">My Orders</h2>
+                        {loading ? (
+                          <Spin tip="Loading orders..." />
+                        ) : (
+                          <Table
+                            rowKey="key"
+                            dataSource={mappedOrders}
+                            columns={orderColumns}
+                            pagination={false}
+                          />
+                        )}
+                      </Card>
+                    </div>
+                  ),
+                },
+              ]}
+            />
+          </div>
+        </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }

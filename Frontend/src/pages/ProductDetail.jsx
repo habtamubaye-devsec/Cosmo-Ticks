@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { message, Tabs, Modal, Rate, Input } from "antd";
+import { message, Modal, Tabs, Rate, Input } from "antd";
 import { Star, Heart, Truck, RotateCcw, ShieldCheck } from "lucide-react";
 import { getProductById, addProductReview } from "../api-service/products-service";
 import { addToCart } from "../api-service/cart-service";
-import OrderModal from "../components/orderModals";
+import { createSingleCheckoutSessionService } from "../api-service/order-service";
+
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useShop } from "../context/ShopContext";
@@ -13,7 +14,6 @@ function ProductDetail() {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
   const [reviewForm, setReviewForm] = useState({ star: 5, comment: "" });
   const [quantity, setQuantity] = useState(1);
@@ -33,135 +33,91 @@ function ProductDetail() {
     }
   };
 
-  useEffect(() => {
-    fetchProduct();
-  }, [id]);
+  useEffect(() => { fetchProduct(); }, [id]);
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-    </div>
-  );
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div></div>;
+  if (!product) return <div className="min-h-screen flex items-center justify-center"><p className="text-gray-500">Product not found.</p></div>;
 
-  if (!product) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <p className="text-gray-500">Product not found.</p>
-    </div>
-  );
-
-  const handleAddToCart = async () => {
-    // Use context for consistency/navbar updates
-    await addToCartContext(product._id);
-  };
+  const handleAddToCart = async () => { await addToCartContext(product._id, quantity); };
 
   const handleReviewSubmit = async () => {
     try {
-      if (!reviewForm.comment) {
-        return message.warning("Please write a comment");
-      }
+      if (!reviewForm.comment) return message.warning("Please write a comment");
       setLoading(true);
       await addProductReview(product._id, reviewForm);
       message.success("Review submitted successfully");
       setReviewModalVisible(false);
       setReviewForm({ star: 5, comment: "" });
-      fetchProduct(); // Refresh to show new review
+      fetchProduct();
     } catch (error) {
       message.error("Failed to submit review");
-    } finally {
-      setLoading(false);
+    } finally { setLoading(false); }
+  };
+
+  const handleBuyNow = async () => {
+    try {
+      // Free product -> add to cart
+      if (!product.oridinaryPrice || product.oridinaryPrice === 0) {
+        await addToCartContext(product._id, quantity);
+        message.success("Product added to cart");
+        return;
+      }
+
+      // Paid product -> create Stripe checkout session
+      const sessionData = await createSingleCheckoutSessionService(product._id, quantity);
+      if (sessionData.url) {
+        window.location.href = sessionData.url; // Redirect user to Stripe checkout
+      } else {
+        throw new Error("Checkout session creation failed");
+      }
+    } catch (error) {
+      console.error(error);
+      message.error(error.message || "Failed to checkout");
     }
   };
 
   const productImages = Array.isArray(product.img) ? product.img : [product.img];
-  const avgRating = product.ratings?.length > 0
+  const avgRating = product.ratings?.length
     ? (product.ratings.reduce((a, b) => a + b.star, 0) / product.ratings.length).toFixed(1)
     : "4.8";
 
   const tabItems = [
-    {
-      key: '1',
-      label: 'Description',
-      children: (
-        <div className="text-gray-600 leading-relaxed py-4">
-          <p>{product.description}</p>
+    { key: '1', label: 'Description', children: <div className="text-gray-600 leading-relaxed py-4">{product.description}</div> },
+    { key: '2', label: 'Ingredients', children: <div className="text-gray-600 leading-relaxed py-4"><ul className="list-disc list-inside mt-4 space-y-2"><li>Hyaluronic Acid</li><li>Vitamin C</li><li>Niacinamide</li><li>Organic Aloe Vera</li></ul></div> },
+    { key: '3', label: `Reviews (${product.ratings?.length || 0})`, children: (
+      <div className="py-4 space-y-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-serif">Customer Reviews</h3>
+          <button onClick={() => setReviewModalVisible(true)} className="px-4 py-2 border border-gray-900 text-gray-900 rounded-full text-sm font-medium hover:bg-gray-900 hover:text-white transition-colors">Write a Review</button>
         </div>
-      ),
-    },
-    {
-      key: '2',
-      label: 'Ingredients',
-      children: (
-        <div className="text-gray-600 leading-relaxed py-4">
-          <p>Clean, sustainable ingredients carefully selected for your skin.</p>
-          <ul className="list-disc list-inside mt-4 space-y-2">
-            <li>Hyaluronic Acid</li>
-            <li>Vitamin C</li>
-            <li>Niacinamide</li>
-            <li>Organic Aloe Vera</li>
-          </ul>
-        </div>
-      ),
-    },
-    {
-      key: '3',
-      label: `Reviews (${product.ratings?.length || 0})`,
-      children: (
-        <div className="py-4 space-y-4">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-serif">Customer Reviews</h3>
-            <button
-              onClick={() => setReviewModalVisible(true)}
-              className="px-4 py-2 border border-gray-900 text-gray-900 rounded-full text-sm font-medium hover:bg-gray-900 hover:text-white transition-colors"
-            >
-              Write a Review
-            </button>
-          </div>
-
-          {(!product.ratings || product.ratings.length === 0) && (
-            <p className="text-gray-400 italic">No reviews yet. Be the first!</p>
-          )}
-          {product.ratings?.map((r, i) => (
-            <div key={i} className="border-b border-gray-100 pb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="flex text-yellow-400">
-                  {[...Array(5)].map((_, idx) => (
-                    <Star key={idx} size={14} fill={idx < r.star ? "currentColor" : "none"} />
-                  ))}
-                </div>
-                <span className="font-medium text-sm">{r.name || "Anonymous"}</span>
-              </div>
-              <p className="text-gray-600 text-sm">{r.comment}</p>
+        {(!product.ratings || product.ratings.length === 0) && <p className="text-gray-400 italic">No reviews yet. Be the first!</p>}
+        {product.ratings?.map((r, i) => (
+          <div key={i} className="border-b border-gray-100 pb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="flex text-yellow-400">{[...Array(5)].map((_, idx) => <Star key={idx} size={14} fill={idx < r.star ? "currentColor" : "none"} />)}</div>
+              <span className="font-medium text-sm">{r.name || "Anonymous"}</span>
             </div>
-          ))}
-        </div>
-      ),
-    },
+            <p className="text-gray-600 text-sm">{r.comment}</p>
+          </div>
+        ))}
+      </div>
+    )},
   ];
 
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
-
       <main className="pt-24 pb-20">
         <div className="container mx-auto px-6 max-w-7xl">
           <div className="flex flex-col lg:flex-row gap-12 lg:gap-16">
-
             {/* Gallery */}
             <div className="lg:w-1/2">
               <div className="aspect-square bg-[#f5f5f3] rounded-2xl overflow-hidden mb-4">
-                <img
-                  src={productImages[selectedImage]}
-                  alt={product.title}
-                  className="w-full h-full object-cover"
-                />
+                <img src={productImages[selectedImage]} alt={product.title} className="w-full h-full object-cover" />
               </div>
               <div className="flex gap-3 overflow-x-auto">
                 {productImages.map((img, idx) => (
-                  <button
-                    key={idx}
-                    className={`w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all ${selectedImage === idx ? 'border-gray-900' : 'border-transparent opacity-60 hover:opacity-100'}`}
-                    onClick={() => setSelectedImage(idx)}
-                  >
+                  <button key={idx} className={`w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all ${selectedImage === idx ? 'border-gray-900' : 'border-transparent opacity-60 hover:opacity-100'}`} onClick={() => setSelectedImage(idx)}>
                     <img src={img} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
@@ -170,89 +126,43 @@ function ProductDetail() {
 
             {/* Product Info */}
             <div className="lg:w-1/2">
-              <p className="text-sm text-[#c17f59] tracking-widest uppercase mb-2">
-                {product.category?.[0] || "Skincare"}
-              </p>
-
+              <p className="text-sm text-[#c17f59] tracking-widest uppercase mb-2">{product.category?.[0] || "Skincare"}</p>
               <h1 className="font-serif text-4xl text-gray-900 mb-4">{product.title}</h1>
-
               <div className="flex items-center gap-4 mb-6">
                 <div className="flex items-center gap-1">
-                  <div className="flex text-yellow-400">
-                    {[...Array(5)].map((_, i) => <Star key={i} size={16} fill="currentColor" />)}
-                  </div>
+                  <div className="flex text-yellow-400">{[...Array(5)].map((_, i) => <Star key={i} size={16} fill="currentColor" />)}</div>
                   <span className="text-sm text-gray-500 ml-1">{avgRating}</span>
                 </div>
                 <span className="text-sm text-gray-400">|</span>
                 <span className="text-sm text-gray-500">{product.ratings?.length || 0} reviews</span>
               </div>
 
-              <p className="text-3xl font-medium text-gray-900 mb-6">
-                ${product.oridinaryPrice?.toFixed(2)}
-              </p>
-
-              <p className="text-gray-600 leading-relaxed mb-8">
-                {product.description?.substring(0, 200)}...
-              </p>
+              <p className="text-3xl font-medium text-gray-900 mb-6">${product.oridinaryPrice?.toFixed(2)}</p>
+              <p className="text-gray-600 leading-relaxed mb-8">{product.description?.substring(0, 200)}...</p>
 
               {/* Quantity & Buttons */}
               <div className="flex items-center gap-4 mb-6">
                 <div className="flex items-center border border-gray-200 rounded-full">
-                  <button
-                    className="px-4 py-2 text-lg"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  >
-                    -
-                  </button>
+                  <button className="px-4 py-2 text-lg" onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</button>
                   <span className="px-4 font-medium">{quantity}</span>
-                  <button
-                    className="px-4 py-2 text-lg"
-                    onClick={() => setQuantity(quantity + 1)}
-                  >
-                    +
-                  </button>
+                  <button className="px-4 py-2 text-lg" onClick={() => setQuantity(quantity + 1)}>+</button>
                 </div>
 
-                <button
-                  onClick={handleAddToCart}
-                  className="flex-1 py-3.5 bg-gray-900 !text-white rounded-full font-medium hover:bg-gray-800 transition-colors"
-                >
-                  Add to Cart
-                </button>
+                <button onClick={handleAddToCart} className="flex-1 py-3.5 bg-gray-900 !text-white rounded-full font-medium hover:bg-gray-800 transition-colors">Add to Cart</button>
 
-                <button
-                  onClick={() => handleAddToWishlist(product._id)}
-                  className="w-12 h-12 border border-gray-200 rounded-full flex items-center justify-center hover:border-gray-400 transition-colors"
-                >
-                  <Heart
-                    size={20}
-                    className={wishlistIds.has(product._id) ? "text-red-500 fill-red-500" : "text-gray-600"}
-                    fill={wishlistIds.has(product._id) ? "currentColor" : "none"}
-                  />
+                <button onClick={() => handleAddToWishlist(product._id)} className="w-12 h-12 border border-gray-200 rounded-full flex items-center justify-center hover:border-gray-400 transition-colors">
+                  <Heart size={20} className={wishlistIds.has(product._id) ? "text-red-500 fill-red-500" : "text-gray-600"} fill={wishlistIds.has(product._id) ? "currentColor" : "none"} />
                 </button>
               </div>
 
-              <button
-                onClick={() => setModalVisible(true)}
-                className="w-full py-3.5 border border-gray-900 text-gray-900 rounded-full font-medium hover:bg-gray-900 hover:text-white transition-colors mb-8"
-              >
-                Buy Now
-              </button>
+              <button onClick={handleBuyNow} className="w-full py-3.5 border border-gray-900 text-gray-900 rounded-full font-medium hover:bg-gray-900 hover:text-white transition-colors mb-8">Buy Now</button>
 
-              {/* Trust Badges */}
               <div className="grid grid-cols-3 gap-4 py-6 border-t border-gray-100">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Truck size={18} /> Free Shipping
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <RotateCcw size={18} /> Easy Returns
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <ShieldCheck size={18} /> Secure Checkout
-                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600"><Truck size={18} /> Free Shipping</div>
+                <div className="flex items-center gap-2 text-sm text-gray-600"><RotateCcw size={18} /> Easy Returns</div>
+                <div className="flex items-center gap-2 text-sm text-gray-600"><ShieldCheck size={18} /> Secure Checkout</div>
               </div>
 
-              {/* Tabs */}
               <Tabs items={tabItems} className="mt-6" />
             </div>
           </div>
@@ -261,41 +171,15 @@ function ProductDetail() {
 
       <Footer />
 
-      {modalVisible && (
-        <OrderModal
-          visible={modalVisible}
-          onClose={() => setModalVisible(false)}
-          product={product}
-          quantity={quantity}
-          total={product.oridinaryPrice * quantity}
-        />
-      )}
-
-      <Modal
-        title="Write a Review"
-        open={reviewModalVisible} // Use 'open' for newer AntD versions, or 'visible' if older. Using 'open' as standard or try 'visible' based on OrderModal. OrderModal uses 'visible' in prop but standard Antd Modal uses 'open' (v5) or 'visible' (v4). I'll check OrderModal usage... OrderModal uses 'visible={modalVisible}'. I will guess v4 or wrapper. I'll use 'open' and fall back or use both if unsure. Actually, let's use 'open' as it is safer for newer, and 'visible' for older. I'll stick to 'open={...} visible={...}' to be safe or check package.json... No access. I'll use 'open' as it's more modern, if it fails I'll fix. Actually let's use 'visible' to match OrderModal style implied by `visible={modalVisible}` prop passing. Wait, OrderModal is a custom component. The standard AntD Modal prop is 'open' in v5 and 'visible' in v4. I'll use `open` as safe default for modern apps.
-        onCancel={() => setReviewModalVisible(false)}
-        onOk={handleReviewSubmit}
-        okText="Submit Review"
-        okButtonProps={{ className: "bg-gray-900 hover:bg-black" }}
-      >
+      <Modal title="Write a Review" open={reviewModalVisible} onCancel={() => setReviewModalVisible(false)} onOk={handleReviewSubmit} okText="Submit Review" okButtonProps={{ className: "bg-gray-900 hover:bg-black" }}>
         <div className="flex flex-col gap-4 py-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
-            <Rate
-              value={reviewForm.star}
-              onChange={(val) => setReviewForm({ ...reviewForm, star: val })}
-              className="text-yellow-400"
-            />
+            <Rate value={reviewForm.star} onChange={(val) => setReviewForm({ ...reviewForm, star: val })} className="text-yellow-400" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Review</label>
-            <Input.TextArea
-              rows={4}
-              placeholder="Share your thoughts about this product..."
-              value={reviewForm.comment}
-              onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
-            />
+            <Input.TextArea rows={4} placeholder="Share your thoughts about this product..." value={reviewForm.comment} onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })} />
           </div>
         </div>
       </Modal>

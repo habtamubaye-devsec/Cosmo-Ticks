@@ -13,9 +13,17 @@ const orderSchema = mongoose.Schema(
     },
     products: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
-        required: true,
+        product: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+          required: true,
+        },
+        quantity: {
+          type: Number,
+          required: true,
+          default: 1,
+          min: 1,
+        },
       },
     ],
     total: {
@@ -29,6 +37,10 @@ const orderSchema = mongoose.Schema(
       type: String,
     },
     email: {
+      type: String,
+      required: true,
+    },
+    paymentId: {
       type: String,
       required: true,
     },

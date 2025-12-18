@@ -13,6 +13,7 @@ import MyAccount from "./pages/MyAccount";
 import PrivateLayout from "./layout/PrivateLayout";
 import Wishlist from "./pages/Wishlist";
 import OAuthCallback from "./pages/OAuthCallback";
+import OrderSuccess from "./pages/OrderSuccess"; 
 import { ShopProvider } from "./context/ShopContext";
 
 function App() {
@@ -40,6 +41,9 @@ function App() {
 
           {/* OAuth callback */}
           <Route path="/auth/success" element={<OAuthCallback />} />
+
+          {/* Order Success */}
+          <Route path="/order/success" element={<OrderSuccess />} />
 
           {/* Category / Shop Routes */}
           <Route path="/shop" element={<Shop />} />

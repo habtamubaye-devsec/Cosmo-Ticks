@@ -6,7 +6,7 @@ import {
   updateCartItem,
   removeCartItemService,
 } from "../api-service/cart-service";
-import OrderModal from "../components/orderModals";
+import { createCartCheckoutSessionService } from "../api-service/order-service";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { Trash2, ShoppingBag, ArrowRight, Minus, Plus, Heart } from "lucide-react";
@@ -17,7 +17,6 @@ function Cart() {
   const [cartItems, setCartItems] = useState([]);
   const [quantities, setQuantities] = useState({});
   const [loading, setLoading] = useState(false);
-  const [checkoutModal, setCheckoutModal] = useState(false);
   const navigate = useNavigate();
 
   const { refreshShop, handleAddToWishlist } = useShop();
@@ -87,6 +86,31 @@ function Cart() {
     return cartItems.reduce((sum, item) =>
       sum + (item.product.oridinaryPrice * quantities[item.product._id]), 0
     );
+  };
+
+  const handleCheckout = async () => {
+    try {
+      if (!cartItems.length) return;
+      setLoading(true);
+
+      const products = cartItems.map((item) => ({
+        productId: item.product._id,
+        quantity: quantities[item.product._id] || item.quantity || 1,
+      }));
+
+      const sessionData = await createCartCheckoutSessionService(products);
+      if (sessionData?.url) {
+        window.location.href = sessionData.url;
+        return;
+      }
+
+      throw new Error("Checkout session creation failed");
+    } catch (error) {
+      console.error(error);
+      message.error(error?.message || "Failed to checkout");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -207,7 +231,8 @@ function Cart() {
                   </div>
 
                   <button
-                    onClick={() => setCheckoutModal(true)}
+                    onClick={handleCheckout}
+                    disabled={loading}
                     className="w-full py-3.5 bg-gray-900 !text-white rounded-full font-medium flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
                   >
                     Checkout <ArrowRight size={18} />
@@ -224,18 +249,6 @@ function Cart() {
       </main>
 
       <Footer />
-
-      {checkoutModal && cartItems.length > 0 && (
-        <OrderModal
-          visible={checkoutModal}
-          onClose={() => setCheckoutModal(false)}
-          product={cartItems[0].product}
-          productId={cartItems[0].product._id}
-          quantity={Object.values(quantities).reduce((a, b) => a + b, 0)}
-          total={calculateTotal()}
-          refreshCart={getdata}
-        />
-      )}
     </div>
   );
 }
