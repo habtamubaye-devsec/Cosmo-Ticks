@@ -16,7 +16,7 @@ function MenuItems({ user, setUser }) {
     { name: "Products", path: "/admin/products", icon: <Package size={iconSize} /> },
     { name: "Orders", path: "/admin/order", icon: <ShoppingBag size={iconSize} /> },
     { name: "Users", path: "/admin/users", icon: <UserRound size={iconSize} /> },
-    { name: "Banners", path: "/admin/banners", icon: <FileText size={iconSize} /> },
+    { name: "Category", path: "/admin/category", icon: <FileText size={iconSize} /> },
     { name: "Charts", path: "/admin/charts", icon: <BarChart2 size={iconSize} /> },
     { name: "Performance Logs", path: "/admin/all-logs", icon: <CheckSquare size={iconSize} /> },
     { name: "Settings", path: "/admin/settings", icon: <Settings size={iconSize} /> },

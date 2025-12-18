@@ -11,6 +11,7 @@ import userRoutes from "./src/Route/userRoute.js";
 import cartRoutes from './src/Route/cartRoute.js'
 import orderRoutes from "./src/Route/orderRoutes.js";
 import wishlistRoutes from "./src/Route/wishlistRoute.js";
+import categoryRoutes from "./src/Route/categoryRoute.js";
 import passport from "./src/config/passport.js";
 
 
@@ -36,6 +37,7 @@ app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/cart", cartRoutes);
 app.use("/api/v1/order", orderRoutes);
 app.use("/api/v1/wishlist", wishlistRoutes);
+app.use("/api/v1/category", categoryRoutes);
 
 // Error handlers (should come last)
 app.use(notFound);

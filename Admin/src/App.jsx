@@ -6,7 +6,7 @@ import Product from "./pages/Product";
 import Profile from "./pages/Profile";
 import User from "./pages/User";
 import Order from "./pages/Order";
-import Banner from "./pages/Banners";
+import Category from "./pages/Category";
 import Setting from "./pages/Setting";
 import Backups from "./pages/Backups";
 import Chart from "./pages/Chart";
@@ -28,7 +28,7 @@ function App() {
           <Route path="products/edit/:id" element={<EditProducts />} />     {/* /admin/products */}
           <Route path="products/add" element={<AddProduct />} />     {/* /admin/products */}
           <Route path="order" element={<Order />} />          {/* /admin/order */}
-          <Route path="banners" element={<Banner />} />       {/* /admin/banners */}
+          <Route path="category" element={<Category />} />       {/* /admin/category */}
           <Route path="settings" element={<Setting />} />     {/* /admin/settings */}
           <Route path="backups" element={<Backups />} />      {/* /admin/backups */}
           <Route path="charts" element={<Chart />} />         {/* /admin/charts */}
