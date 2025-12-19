@@ -14,6 +14,7 @@ import PrivateLayout from "./layout/PrivateLayout";
 import Wishlist from "./pages/Wishlist";
 import OAuthCallback from "./pages/OAuthCallback";
 import OrderSuccess from "./pages/OrderSuccess"; 
+import About from "./pages/About";
 import { ShopProvider } from "./context/ShopContext";
 
 function App() {
@@ -50,8 +51,7 @@ function App() {
           <Route path="/category/:category" element={<Shop />} />
           <Route path="/category/:category/:subcategory" element={<Shop />} />
 
-          {/* Static page fallback */}
-          <Route path="/about" element={<Home />} />
+          <Route path="/about" element={<About />} />
 
           {/* Private Routes */}
           <Route element={<PrivateLayout />}>
