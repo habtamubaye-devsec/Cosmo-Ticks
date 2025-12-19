@@ -14,7 +14,7 @@ function PrivateLayout() {
     try {
       setLoading(true);
       const response = await getCurrentUser(); // cookies sent automatically
-      setUser(response.data.data); // adjust based on your API response structure
+      setUser(response.data);
     } catch (error) {
       message.error(error.message || "You must be logged in");
       navigate("/login"); // redirect if unauthorized
@@ -37,7 +37,7 @@ function PrivateLayout() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar user={user} setUser={setUser} />
+      <Navbar />
       <main className="flex-1 overflow-auto">
         <Outlet />
       </main>

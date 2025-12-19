@@ -5,34 +5,43 @@ function Banner() {
   const navigate = useNavigate();
 
   return (
-    <div className="relative w-full min-h-[90vh] flex items-center bg-[#fdfbf7] overflow-hidden">
-      {/* Content Container */}
-      <div className="container mx-auto px-6 lg:px-12 flex items-center h-full relative z-10">
+    <div className="relative w-full h-[85vh] flex items-center bg-[#fdfbf7] overflow-hidden">
+      {/* Full Background Image */}
+      <div className="absolute inset-0 z-0">
+        <img
+          src="https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?q=80&w=2000&auto=format&fit=crop"
+          alt="Sustainable Beauty Background"
+          className="w-full h-full object-cover object-center opacity-90"
+        />
+        {/* Soft overlay to ensure text readability */}
+        <div className="absolute inset-0 bg-gradient-to-r from-white/60 via-white/30 to-transparent"></div>
+      </div>
 
-        {/* Left: Text Content */}
-        <div className="w-full lg:w-1/2 py-20 lg:py-0 pr-0 lg:pr-12">
-          <span className="text-xs font-bold tracking-[0.2em] text-[#c17f59] uppercase mb-6 block">
-            GOOD FOR YOU, GOOD FOR <span className="bg-[#2563eb] text-white px-1 py-0.5">EARTH</span>
+      {/* Content Container - Left Aligned */}
+      <div className="container mx-auto px-6 lg:px-12 relative z-10 animate-fade-in pt-12">
+        <div className="max-w-xl">
+          <span className="text-xs font-bold tracking-[0.2em] text-[#c17f59] uppercase mb-4 block">
+            BEAUTY WITHOUT COMPROMISE
           </span>
 
-          <h1 className="font-serif text-6xl md:text-7xl lg:text-8xl leading-[1] text-gray-900 mb-8 tracking-tight">
-            Sustainable <br />
-            <span className="italic">Beauty</span>
+          <h1 className="font-serif text-6xl md:text-7xl lg:text-8xl leading-[1.1] text-[#1a1a1a] mb-6 tracking-tight">
+            Cruelty Free
           </h1>
 
-          <p className="text-gray-600 text-lg md:text-xl mb-12 max-w-lg leading-relaxed">
+          <p className="text-gray-700 text-lg md:text-xl mb-10 leading-relaxed font-normal">
             Discover skincare that nurtures, cosmetics that celebrate, and a beauty routine that's uniquely yours.
           </p>
 
-          <div className="flex gap-4">
+          <div className="flex flex-row gap-4">
             <button
-              onClick={() => navigate("/category/skincare")}
-              className="px-10 py-4 !text-white bg-gray-900 hover:bg-black transition-all rounded-full text-base font-medium shadow-lg hover:shadow-xl hover:-translate-y-1 flex items-center justify-center whitespace-nowrap"
+              onClick={() => navigate("/shop")}
+              className="btn-premium px-10"
             >
               Shop Now
             </button>
             <button
-              className="px-10 py-4 bg-white border border-gray-200 text-gray-900 hover:border-gray-900 transition-all rounded-full text-base font-medium flex items-center justify-center whitespace-nowrap"
+              onClick={() => navigate("/quiz")}
+              className="btn-outline-premium px-10"
             >
               Find Your Match
             </button>
@@ -40,20 +49,9 @@ function Banner() {
         </div>
       </div>
 
-      {/* Right: Full Bleed Image */}
-      <div className="hidden lg:block absolute right-0 top-0 w-[50%] h-full">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#fdfbf7] to-transparent z-10 w-20"></div>
-        <img
-          src="https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?q=80&w=2000&auto=format&fit=crop"
-          alt="Beauty Model"
-          className="w-full h-full object-cover object-center"
-        />
-      </div>
-
       {/* Scroll Indicator */}
-      <div className="absolute bottom-10 left-10 lg:left-1/2 lg:-translate-x-1/2 flex gap-2 items-center text-gray-400 animate-bounce">
-        <span className="text-xs uppercase tracking-widest">Scroll</span>
-        <ChevronDown size={16} />
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-gray-800 animate-bounce z-20 cursor-pointer" onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}>
+        <ChevronDown size={24} strokeWidth={1.5} />
       </div>
     </div>
   );
