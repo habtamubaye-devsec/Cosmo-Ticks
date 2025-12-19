@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { message, Modal, Tabs, Rate, Input } from "antd";
-import { Star, Heart, Truck, RotateCcw, ShieldCheck } from "lucide-react";
-import { getProductById, addProductReview } from "../api-service/products-service";
+import { Star, Heart, Truck, RotateCcw, ShieldCheck, PencilLine, Trash2 } from "lucide-react";
+import { getProductById, addProductReview, deleteProductReview } from "../api-service/products-service";
 import { addToCart } from "../api-service/cart-service";
 import { createSingleCheckoutSessionService } from "../api-service/order-service";
 
@@ -16,10 +16,11 @@ function ProductDetail() {
   const [product, setProduct] = useState(null);
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
   const [reviewForm, setReviewForm] = useState({ star: 5, comment: "" });
+  const [isEditingReview, setIsEditingReview] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
 
-  const { handleAddToCart: addToCartContext, handleAddToWishlist, wishlistIds } = useShop();
+  const { user, handleAddToCart: addToCartContext, handleAddToWishlist, wishlistIds } = useShop();
 
   const fetchProduct = async () => {
     try {
@@ -42,16 +43,57 @@ function ProductDetail() {
 
   const handleReviewSubmit = async () => {
     try {
+      if (!user?._id) {
+        message.error("Please login to write a review");
+        return;
+      }
       if (!reviewForm.comment) return message.warning("Please write a comment");
       setLoading(true);
       await addProductReview(product._id, reviewForm);
-      message.success("Review submitted successfully");
+      message.success(isEditingReview ? "Review updated successfully" : "Review submitted successfully");
       setReviewModalVisible(false);
       setReviewForm({ star: 5, comment: "" });
+      setIsEditingReview(false);
       fetchProduct();
     } catch (error) {
       message.error("Failed to submit review");
     } finally { setLoading(false); }
+  };
+
+  const openReviewModal = () => {
+    if (!user?._id) {
+      message.error("Please login to write a review");
+      return;
+    }
+
+    const myReview = product?.ratings?.find((r) => String(r.postedBy?._id ?? r.postedBy) === String(user._id));
+    if (myReview) {
+      setReviewForm({ star: myReview.star || 5, comment: myReview.comment || "" });
+      setIsEditingReview(true);
+    } else {
+      setReviewForm({ star: 5, comment: "" });
+      setIsEditingReview(false);
+    }
+    setReviewModalVisible(true);
+  };
+
+  const handleDeleteReview = async () => {
+    try {
+      if (!user?._id) {
+        message.error("Please login first");
+        return;
+      }
+      setLoading(true);
+      await deleteProductReview(product._id);
+      message.success("Review deleted successfully");
+      setReviewForm({ star: 5, comment: "" });
+      setIsEditingReview(false);
+      fetchProduct();
+    } catch (error) {
+      message.error("Failed to delete review");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleBuyNow = async () => {
@@ -77,9 +119,14 @@ function ProductDetail() {
   };
 
   const productImages = Array.isArray(product.img) ? product.img : [product.img];
-  const avgRating = product.ratings?.length
-    ? (product.ratings.reduce((a, b) => a + b.star, 0) / product.ratings.length).toFixed(1)
-    : "4.8";
+  const reviewCount = product.ratings?.length || 0;
+  const avgRatingNumber = reviewCount
+    ? product.ratings.reduce((sum, r) => sum + Number(r.star || 0), 0) / reviewCount
+    : 0;
+  const avgRatingLabel = avgRatingNumber ? avgRatingNumber.toFixed(1) : "0.0";
+  const myReview = user?._id
+    ? product?.ratings?.find((r) => String(r.postedBy?._id ?? r.postedBy) === String(user._id))
+    : null;
 
   const tabItems = [
     { key: '1', label: 'Description', children: <div className="text-gray-600 leading-relaxed py-4">{product.description}</div> },
@@ -88,18 +135,54 @@ function ProductDetail() {
       <div className="py-4 space-y-4">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-serif">Customer Reviews</h3>
-          <button onClick={() => setReviewModalVisible(true)} className="px-4 py-2 border border-gray-900 text-gray-900 rounded-full text-sm font-medium hover:bg-gray-900 hover:text-white transition-colors">Write a Review</button>
+          <button onClick={openReviewModal} className="px-4 py-2 border border-gray-900 text-gray-900 rounded-full text-sm font-medium hover:bg-gray-900 hover:text-white transition-colors">{user ? (myReview ? 'Edit Your Review' : 'Write a Review') : 'Write a Review'}</button>
         </div>
         {(!product.ratings || product.ratings.length === 0) && <p className="text-gray-400 italic">No reviews yet. Be the first!</p>}
-        {product.ratings?.map((r, i) => (
+
+        {(() => {
+          const uid = user?._id ? String(user._id) : null;
+          const ratings = Array.isArray(product.ratings) ? product.ratings : [];
+          const my = uid ? ratings.find((r) => String(r.postedBy?._id ?? r.postedBy) === uid) : null;
+          const others = uid ? ratings.filter((r) => String(r.postedBy?._id ?? r.postedBy) !== uid) : ratings;
+          const ordered = my ? [my, ...others] : others;
+
+          return ordered.map((r, i) => {
+            const isMine = uid && String(r.postedBy?._id ?? r.postedBy) === uid;
+            return (
           <div key={i} className="border-b border-gray-100 pb-4">
             <div className="flex items-center gap-2 mb-2">
               <div className="flex text-yellow-400">{[...Array(5)].map((_, idx) => <Star key={idx} size={14} fill={idx < r.star ? "currentColor" : "none"} />)}</div>
-              <span className="font-medium text-sm">{r.name || "Anonymous"}</span>
+              <span className="font-medium text-sm">{r.postedBy?.name || r.name || "Anonymous"}</span>
+              {isMine && <span className="text-xs text-gray-400">(Your review)</span>}
             </div>
             <p className="text-gray-600 text-sm">{r.comment}</p>
+
+            {isMine && (
+              <div className="flex items-center gap-3 mt-3">
+                <button
+                  onClick={openReviewModal}
+                  aria-label="Edit review"
+                  title="Edit"
+                  className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 text-gray-900 supports-[hover:hover]:hover:border-gray-400 transition-colors"
+                  type="button"
+                >
+                  <PencilLine size={18} />
+                </button>
+                <button
+                  onClick={handleDeleteReview}
+                  aria-label="Delete review"
+                  title="Delete"
+                  className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 text-red-600 supports-[hover:hover]:hover:border-red-300 transition-colors"
+                  type="button"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            )}
           </div>
-        ))}
+            );
+          });
+        })()}
       </div>
     )},
   ];
@@ -130,11 +213,47 @@ function ProductDetail() {
               <h1 className="font-serif text-4xl text-gray-900 mb-4">{product.title}</h1>
               <div className="flex items-center gap-4 mb-6">
                 <div className="flex items-center gap-1">
-                  <div className="flex text-yellow-400">{[...Array(5)].map((_, i) => <Star key={i} size={16} fill="currentColor" />)}</div>
-                  <span className="text-sm text-gray-500 ml-1">{avgRating}</span>
+                  <div className="flex text-yellow-400">
+                    {[...Array(5)].map((_, i) => {
+                      const filled = avgRatingNumber >= i + 1 - 0.5;
+                      return <Star key={i} size={16} fill={filled ? "currentColor" : "none"} />;
+                    })}
+                  </div>
+                  <span className="text-sm text-gray-500 ml-1">{avgRatingLabel}</span>
                 </div>
                 <span className="text-sm text-gray-400">|</span>
-                <span className="text-sm text-gray-500">{product.ratings?.length || 0} reviews</span>
+                <span className="text-sm text-gray-500">{reviewCount} {reviewCount === 1 ? "review" : "reviews"}</span>
+
+                {myReview ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={openReviewModal}
+                      aria-label="Edit review"
+                      title="Edit"
+                      className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 text-gray-900 supports-[hover:hover]:hover:border-gray-400 transition-colors"
+                    >
+                      <PencilLine size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeleteReview}
+                      aria-label="Delete review"
+                      title="Delete"
+                      className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 text-red-600 supports-[hover:hover]:hover:border-red-300 transition-colors"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={openReviewModal}
+                    className="text-sm font-medium text-gray-900 supports-[hover:hover]:hover:underline"
+                  >
+                    Write a review
+                  </button>
+                )}
               </div>
 
               <p className="text-3xl font-medium text-gray-900 mb-6">${product.oridinaryPrice?.toFixed(2)}</p>
@@ -155,7 +274,7 @@ function ProductDetail() {
                 </button>
               </div>
 
-              <button onClick={handleBuyNow} className="w-full py-3.5 border border-gray-900 text-gray-900 rounded-full font-medium hover:bg-gray-900 hover:text-white transition-colors mb-8">Buy Now</button>
+              <button onClick={handleBuyNow} className="w-full py-3.5 bg-white text-gray-900 border border-gray-900 rounded-full font-medium transition-shadow mb-8 supports-[hover:hover]:hover:shadow-lg">Buy Now</button>
 
               <div className="grid grid-cols-3 gap-4 py-6 border-t border-gray-100">
                 <div className="flex items-center gap-2 text-sm text-gray-600"><Truck size={18} /> Free Shipping</div>
@@ -171,7 +290,17 @@ function ProductDetail() {
 
       <Footer />
 
-      <Modal title="Write a Review" open={reviewModalVisible} onCancel={() => setReviewModalVisible(false)} onOk={handleReviewSubmit} okText="Submit Review" okButtonProps={{ className: "bg-gray-900 hover:bg-black" }}>
+      <Modal
+        title={isEditingReview ? "Edit Your Review" : "Write a Review"}
+        open={reviewModalVisible}
+        onCancel={() => {
+          setReviewModalVisible(false);
+          setIsEditingReview(false);
+        }}
+        onOk={handleReviewSubmit}
+        okText={isEditingReview ? "Update Review" : "Submit Review"}
+        okButtonProps={{ className: "bg-gray-900 !text-white hover:bg-black" }}
+      >
         <div className="flex flex-col gap-4 py-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>

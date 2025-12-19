@@ -85,23 +85,53 @@ export const ShopProvider = ({ children }) => {
             message.error("Please login to use wishlist");
             return false;
         }
+
+        // 1. Optimistic Update
+        const previousCount = wishlistCount;
+        const previousIds = new Set(wishlistIds);
+
+        setWishlistCount(prev => prev + 1);
+        setWishlistIds(prev => new Set(prev).add(productId));
+
         try {
             await addToWishlist(productId);
-            await refreshShop(); // Sync count & IDs
+            // await refreshShop(); // No need to full refresh if optimistic worked, but good for sync. 
+            // We can skip refreshShop() to keep it snappy or call it silently. 
+            // For now, let's trust the optimistic update and maybe sync in background if needed.
+            // But to be safe and get full object data if needed elsewhere, we might want to refreshEventualy.
+            // Let's just keep the optimistic state.
+
             message.success("Added to wishlist");
             return true;
         } catch (error) {
+            // Revert on failure
+            setWishlistCount(previousCount);
+            setWishlistIds(previousIds);
             message.error(error.message);
             return false;
         }
     };
 
     const handleRemoveFromWishlist = async (productId) => {
+        // 1. Optimistic Update
+        const previousCount = wishlistCount;
+        const previousIds = new Set(wishlistIds);
+
+        setWishlistCount(prev => Math.max(0, prev - 1));
+        setWishlistIds(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(productId);
+            return newSet;
+        });
+
         try {
             await removeFromWishlist(productId);
-            await refreshShop(); // Sync count & IDs
+            // await refreshShop(); 
             return true;
         } catch (error) {
+            // Revert on failure
+            setWishlistCount(previousCount);
+            setWishlistIds(previousIds);
             message.error("Could not remove from wishlist");
             return false;
         }
