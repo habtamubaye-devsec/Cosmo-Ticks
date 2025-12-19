@@ -22,3 +22,15 @@ export const addProductReview = async (id, reviewData) => {
   const response = await API.post(`/products/${id}/reviews`, reviewData);
   return response.data;
 };
+
+// Update review (same as add: backend upserts)
+export const updateProductReview = async (id, reviewData) => {
+  const response = await API.put(`/products/${id}/reviews`, reviewData);
+  return response.data;
+};
+
+// Delete current user's review
+export const deleteProductReview = async (id) => {
+  const response = await API.delete(`/products/${id}/reviews`);
+  return response.data;
+};
