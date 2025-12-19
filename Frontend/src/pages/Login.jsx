@@ -71,7 +71,7 @@ function Login() {
               <Form.Item name="remember" valuePropName="checked" noStyle>
                 <Checkbox className="text-gray-600">Remember me</Checkbox>
               </Form.Item>
-              <a className="text-sm text-[#c17f59] hover:underline" href="#">Forgot password?</a>
+              <a className="text-sm text-[#c17f59] supports-[hover:hover]:hover:underline" href="#">Forgot password?</a>
             </div>
 
             <Form.Item>
@@ -98,14 +98,14 @@ function Login() {
           <div className="grid grid-cols-2 gap-4">
             <button
               onClick={handleGoogleLogin}
-              className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-lg supports-[hover:hover]:hover:bg-gray-50 transition-colors"
             >
               <Chrome size={20} className="text-gray-600" />
               <span className="text-sm font-medium text-gray-700">Google</span>
             </button>
             <button
               onClick={handleFacebookLogin}
-              className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-lg supports-[hover:hover]:hover:bg-gray-50 transition-colors"
             >
               <Facebook size={20} className="text-blue-600" />
               <span className="text-sm font-medium text-gray-700">Facebook</span>
@@ -114,7 +114,7 @@ function Login() {
 
           <p className="text-center text-gray-500 mt-6">
             Don't have an account?{" "}
-            <Link to="/register" className="text-[#c17f59] hover:underline font-medium">
+            <Link to="/register" className="text-[#c17f59] supports-[hover:hover]:hover:underline font-medium">
               Create Account
             </Link>
           </p>

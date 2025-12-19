@@ -46,7 +46,7 @@ function OrderSuccess() {
 
         <button
           onClick={handleGoToProduct}
-          className="mt-6 w-full py-3 bg-gray-900 text-white font-medium rounded-full hover:bg-gray-800 transition-colors"
+          className="mt-6 w-full py-3 bg-gray-900 !text-white font-medium rounded-full hover:bg-gray-800 transition-colors"
         >
           Go to Product Page
         </button>
