@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Search, Heart, User, ShoppingCart, Menu, X, ChevronDown } from "lucide-react";
-import { Dropdown, Drawer, Badge } from "antd";
+import { Dropdown, Drawer } from "antd";
 import { logoutUser } from "../api-service/user-service.js";
 import { navStructure } from "../utils/nav-data";
 import { useShop } from "../context/ShopContext";
@@ -65,9 +65,11 @@ function Navbar() {
 
   return (
     <>
+      {/* Spacer so fixed navbar doesn't overlap page content */}
+      <div className="h-[72px]" />
+
       <nav
-        className={`fixed top-0 w-full z-50 transition-all duration-500 border-b border-transparent ${scrolled ? "bg-white/95 backdrop-blur-md shadow-sm py-2 border-gray-100" : "bg-transparent py-6"
-          }`}
+        className={`fixed top-0 w-full z-[70] transition-all duration-500 border-b border-transparent py-2 ${scrolled ? "bg-white/95 backdrop-blur-md shadow-sm border-gray-100" : "bg-white"}`}
       >
         <div className="container mx-auto px-6 flex items-center justify-between h-14">
 
@@ -128,15 +130,18 @@ function Navbar() {
           <div className="flex items-center gap-4 lg:gap-6">
             {/* Search Toggle */}
             <button
-              onClick={() => setSearchOpen(true)}
+              onClick={() => setSearchOpen((v) => !v)}
               className="text-gray-800 hover:text-[#c17f59] transition-colors duration-300"
             >
               <Search size={22} strokeWidth={1.5} />
             </button>
 
             {/* Wishlist Link */}
-            <Link to="/wishlist" className="text-gray-800 hover:text-[#c17f59] transition-colors duration-300">
+            <Link to="/wishlist" className="relative text-gray-800 hover:text-[#c17f59] transition-colors duration-300">
               <Heart size={22} strokeWidth={1.5} />
+              <span className="absolute -top-1.5 -right-1.5 bg-[#c17f59] text-white text-[10px] font-bold min-w-4 h-4 px-1 rounded-full flex items-center justify-center shadow-sm">
+                {wishlistCount}
+              </span>
             </Link>
 
             {user ? (
@@ -229,36 +234,45 @@ function Navbar() {
           )}
         </div>
       </Drawer>
-      {/* Search Bar - Appears below navbar */}
+
+      {/* Search Panel - Floating (~400px wide), overlays content */}
       <div
-        className={`fixed left-0 w-full bg-white z-40 transition-all duration-300 border-b border-gray-100 shadow-sm overflow-hidden ${searchOpen ? 'top-16 md:top-20 opacity-100 visible' : 'top-14 opacity-0 invisible h-0'
-          }`}
+        className={`fixed left-1/2 -translate-x-1/2 z-[80] transition-all duration-300 ${searchOpen ? "top-[88px] opacity-100" : "top-[72px] opacity-0 pointer-events-none"}`}
+        style={{ width: "min(400px, calc(100vw - 3rem))" }}
       >
-        <div className="container mx-auto px-6 py-4">
-          <form onSubmit={handleSearch} className="flex gap-4 max-w-4xl mx-auto">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-              <input
-                type="text"
-                placeholder="Search products..."
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-full outline-none focus:ring-2 focus:ring-gray-200 transition-all"
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                autoFocus={searchOpen}
-              />
-            </div>
-            <button type="submit" className="bg-black !text-white px-8 py-3 rounded-full hover:bg-[#c17f59] transition-colors text-sm font-medium flex items-center justify-center whitespace-nowrap">
-              Search
-            </button>
+        <form onSubmit={handleSearch} className="bg-white border border-gray-100 shadow-sm rounded-2xl px-4 py-3 flex items-center gap-2">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Search products..."
+              className="w-full pl-10 pr-10 py-2.5 bg-gray-50 rounded-full outline-none focus:ring-2 focus:ring-gray-200 transition-all"
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              autoFocus={searchOpen}
+            />
+
+            {/* Integrated submit icon (replaces "Search" button) */}
             <button
-              type="button"
-              onClick={() => setSearchOpen(false)}
-              className="p-3 text-gray-500 hover:text-red-500 transition-colors"
+              type="submit"
+              aria-label="Search"
+              title="Search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white border border-gray-200 text-gray-800 flex items-center justify-center supports-[hover:hover]:hover:border-gray-400 transition-colors"
             >
-              <X size={24} />
+              <Search size={18} strokeWidth={1.8} />
             </button>
-          </form>
-        </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setSearchOpen(false)}
+            aria-label="Close search"
+            title="Close"
+            className="w-9 h-9 rounded-full border border-gray-200 text-gray-500 flex items-center justify-center supports-[hover:hover]:hover:border-gray-400 transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </form>
       </div>
     </>
   );

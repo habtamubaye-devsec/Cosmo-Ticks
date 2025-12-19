@@ -7,8 +7,11 @@ import { useShop } from "../context/ShopContext";
 function Products() {
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState([]);
+  const [page, setPage] = useState(1);
   const navigate = useNavigate();
-  const { handleAddToCart, handleAddToWishlist, wishlistIds } = useShop();
+  const { handleAddToCart, handleAddToWishlist, handleRemoveFromWishlist, wishlistIds } = useShop();
+
+  const pageSize = 16;
 
   const fetchData = async () => {
     try {
@@ -37,7 +40,19 @@ function Products() {
     return badgeOptions[index % badgeOptions.length];
   };
 
-  const getRandomRating = () => (Math.random() * 0.5 + 4.5).toFixed(1);
+  const getRatingSummary = (product) => {
+    const ratings = Array.isArray(product?.ratings) ? product.ratings : [];
+    const count = ratings.length;
+    const avg = count
+      ? ratings.reduce((sum, r) => sum + Number(r?.star || 0), 0) / count
+      : 0;
+    return { count, avg, label: avg ? avg.toFixed(1) : "0.0" };
+  };
+
+  const totalPages = Math.max(1, Math.ceil((products?.length || 0) / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const startIndex = (safePage - 1) * pageSize;
+  const visibleProducts = (products || []).slice(startIndex, startIndex + pageSize);
 
   if (loading) return (
     <div className="flex justify-center py-20 bg-white">
@@ -53,15 +68,18 @@ function Products() {
           <p className="text-gray-500 text-lg">Discover our curated collection of clean, effective skincare</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
-          {products.slice(0, 6).map((product, index) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
+          {visibleProducts.map((product, index) => (
+            (() => {
+              const { count, avg, label } = getRatingSummary(product);
+              return (
             <div
               key={product._id}
               className="group cursor-pointer"
               onClick={() => navigate(`/product/${product._id}`)}
             >
-              {/* Image Container - Specific Beige Background */}
-              <div className="relative aspect-[4/5] bg-[#f2f2f0] rounded-2xl overflow-hidden mb-6 transition-all duration-500 hover:shadow-lg">
+              {/* Image Container - Specific Beige Background (matches global now or transparent) */}
+              <div className="relative aspect-[4/5] bg-[#f9f7f2] rounded-2xl overflow-hidden mb-6 transition-all duration-500 supports-[hover:hover]:hover:shadow-lg group-hover:-translate-y-1">
                 <img
                   src={product.img?.[0]}
                   alt={product.title}
@@ -69,7 +87,7 @@ function Products() {
                 />
 
                 <div className="absolute top-4 left-4 flex flex-col gap-2">
-                  {getBadges(index).map((badge, i) => (
+                  {getBadges(startIndex + index).map((badge, i) => (
                     <span
                       key={i}
                       className={`${badge.bg} ${badge.textCol} text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm uppercase tracking-wide`}
@@ -79,17 +97,21 @@ function Products() {
                   ))}
                 </div>
 
-                {/* Wishlist Heart */}
+                {/* Wishlist Heart - Toggle Logic */}
                 <button
-                  className="absolute top-4 right-4 w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-all hover:scale-110"
+                  className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm supports-[hover:hover]:hover:shadow-md transition-all supports-[hover:hover]:hover:scale-110 z-10"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleAddToWishlist(product._id);
+                    if (wishlistIds.has(product._id)) {
+                      handleRemoveFromWishlist(product._id);
+                    } else {
+                      handleAddToWishlist(product._id);
+                    }
                   }}
                 >
                   <Heart
-                    size={16}
-                    className={wishlistIds.has(product._id) ? "text-red-500 fill-red-500" : "text-gray-900"}
+                    size={18}
+                    className={`transition-colors duration-300 ${wishlistIds.has(product._id) ? "text-red-500 fill-red-500" : "text-gray-900"}`}
                     fill={wishlistIds.has(product._id) ? "currentColor" : "none"}
                   />
                 </button>
@@ -100,9 +122,9 @@ function Products() {
                     e.stopPropagation();
                     handleAddToCart(product._id);
                   }}
-                  className="absolute bottom-4 right-4 w-10 h-10 bg-gray-900 !text-white rounded-full flex items-center justify-center opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg hover:bg-black"
+                  className="absolute bottom-4 right-4 w-12 h-12 bg-gray-900 !text-white rounded-full flex items-center justify-center opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-xl supports-[hover:hover]:hover:bg-black hover:scale-105 z-10"
                 >
-                  <Plus size={20} className="text-white" />
+                  <Plus size={22} className="text-white" />
                 </button>
               </div>
 
@@ -123,16 +145,41 @@ function Products() {
 
                 <div className="flex items-center gap-2 mt-2">
                   <div className="flex text-[#c17f59]">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} size={14} fill="currentColor" />
-                    ))}
+                    {[...Array(5)].map((_, i) => {
+                      const filled = avg >= i + 1 - 0.5;
+                      return <Star key={i} size={14} fill={filled ? "currentColor" : "none"} />;
+                    })}
                   </div>
-                  <span className="text-sm text-gray-500">{getRandomRating()} (128 reviews)</span>
+                  <span className="text-sm text-gray-500">
+                    {label} ({count} {count === 1 ? "review" : "reviews"})
+                  </span>
                 </div>
               </div>
             </div>
+              );
+            })()
           ))}
         </div>
+
+        {products.length > 0 && (
+          <div className="flex justify-center mt-14">
+            <div className="flex items-center gap-2">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPage(p)}
+                  className={`w-10 h-10 rounded-full border text-sm font-medium transition-colors ${p === safePage
+                    ? "bg-[#c17f59] text-white border-[#c17f59] shadow-sm"
+                    : "bg-white text-gray-900 border-gray-200 supports-[hover:hover]:hover:border-gray-400"
+                    }`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
