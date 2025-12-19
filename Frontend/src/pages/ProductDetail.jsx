@@ -20,7 +20,13 @@ function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
 
-  const { user, handleAddToCart: addToCartContext, handleAddToWishlist, wishlistIds } = useShop();
+  const {
+    user,
+    handleAddToCart: addToCartContext,
+    handleAddToWishlist,
+    handleRemoveFromWishlist,
+    wishlistIds,
+  } = useShop();
 
   const fetchProduct = async () => {
     try {
@@ -269,7 +275,17 @@ function ProductDetail() {
 
                 <button onClick={handleAddToCart} className="flex-1 py-3.5 bg-gray-900 !text-white rounded-full font-medium hover:bg-gray-800 transition-colors">Add to Cart</button>
 
-                <button onClick={() => handleAddToWishlist(product._id)} className="w-12 h-12 border border-gray-200 rounded-full flex items-center justify-center hover:border-gray-400 transition-colors">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (wishlistIds.has(product._id)) {
+                      handleRemoveFromWishlist(product._id);
+                    } else {
+                      handleAddToWishlist(product._id);
+                    }
+                  }}
+                  className="w-12 h-12 border border-gray-200 rounded-full flex items-center justify-center hover:border-gray-400 transition-colors"
+                >
                   <Heart size={20} className={wishlistIds.has(product._id) ? "text-red-500 fill-red-500" : "text-gray-600"} fill={wishlistIds.has(product._id) ? "currentColor" : "none"} />
                 </button>
               </div>

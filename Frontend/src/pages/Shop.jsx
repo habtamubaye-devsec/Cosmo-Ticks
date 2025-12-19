@@ -13,7 +13,15 @@ function Shop() {
     const [loading, setLoading] = useState(true);
     const [products, setProducts] = useState([]);
     const [filteredProducts, setFilteredProducts] = useState([]);
-    const { handleAddToCart: addToCartContext, handleAddToWishlist, wishlistIds } = useShop();
+    const [page, setPage] = useState(1);
+    const {
+        handleAddToCart: addToCartContext,
+        handleAddToWishlist,
+        handleRemoveFromWishlist,
+        wishlistIds,
+    } = useShop();
+
+    const pageSize = 16;
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -52,6 +60,7 @@ function Shop() {
             }
 
             setFilteredProducts(filtered);
+            setPage(1);
         }
     }, [category, subcategory, products]);
 
@@ -61,6 +70,20 @@ function Shop() {
         if (index % 5 === 0) return [{ text: "New", bg: "bg-black", textCol: "text-white" }];
         return [];
     };
+
+    const getRatingSummary = (product) => {
+        const ratings = Array.isArray(product?.ratings) ? product.ratings : [];
+        const count = ratings.length;
+        const avg = count
+            ? ratings.reduce((sum, r) => sum + Number(r?.star || 0), 0) / count
+            : 0;
+        return { count, avg, label: avg ? avg.toFixed(1) : "0.0" };
+    };
+
+    const totalPages = Math.max(1, Math.ceil((filteredProducts?.length || 0) / pageSize));
+    const safePage = Math.min(page, totalPages);
+    const startIndex = (safePage - 1) * pageSize;
+    const visibleProducts = (filteredProducts || []).slice(startIndex, startIndex + pageSize);
 
     return (
         <div className="min-h-screen bg-white">
@@ -95,8 +118,12 @@ function Shop() {
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
                     </div>
                 ) : filteredProducts.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
-                        {filteredProducts.map((product, index) => (
+                    <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
+                        {visibleProducts.map((product, index) => (
+                            (() => {
+                                const { count, avg, label } = getRatingSummary(product);
+                                return (
                             <div
                                 key={product._id}
                                 className="group cursor-pointer"
@@ -112,7 +139,7 @@ function Shop() {
 
                                     {/* Badges */}
                                     <div className="absolute top-4 left-4 flex flex-col gap-2">
-                                        {getBadges(index).map((badge, i) => (
+                                        {getBadges(startIndex + index).map((badge, i) => (
                                             <span
                                                 key={i}
                                                 className={`${badge.bg} ${badge.textCol} text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm uppercase tracking-wide`}
@@ -126,7 +153,11 @@ function Shop() {
                                         className="absolute top-4 right-4 w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition-all z-10"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            handleAddToWishlist(product._id);
+                                            if (wishlistIds.has(product._id)) {
+                                                handleRemoveFromWishlist(product._id);
+                                            } else {
+                                                handleAddToWishlist(product._id);
+                                            }
                                         }}
                                     >
                                         <Heart
@@ -160,10 +191,45 @@ function Shop() {
                                             ${product.oridinaryPrice?.toFixed(2)}
                                         </span>
                                     </div>
+
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <div className="flex text-[#c17f59]">
+                                            {[...Array(5)].map((_, i) => {
+                                                const filled = avg >= i + 1 - 0.5;
+                                                return <Star key={i} size={14} fill={filled ? "currentColor" : "none"} />;
+                                            })}
+                                        </div>
+                                        <span className="text-sm text-gray-500">
+                                            {label} ({count} {count === 1 ? "review" : "reviews"})
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
+                                );
+                            })()
                         ))}
                     </div>
+
+                    {filteredProducts.length > 0 && (
+                        <div className="flex justify-center mt-14">
+                            <div className="flex items-center gap-2">
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                                    <button
+                                        key={p}
+                                        type="button"
+                                        onClick={() => setPage(p)}
+                                        className={`w-10 h-10 rounded-full border text-sm font-medium transition-colors ${p === safePage
+                                            ? "bg-[#c17f59] text-white border-[#c17f59] shadow-sm"
+                                            : "bg-white text-gray-900 border-gray-200 supports-[hover:hover]:hover:border-gray-400"
+                                            }`}
+                                    >
+                                        {p}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    </>
                 ) : (
                     <div className="text-center py-20">
                         <p className="text-xl text-gray-400 font-serif mb-4">No products found in this category.</p>

@@ -57,7 +57,7 @@ function Wishlist() {
     }
 
     return (
-        <div className="bg-white min-h-screen">
+        <div className="min-h-screen animate-fade-in">
             <Navbar />
             <div className="pt-32 pb-12">
                 <div className="container mx-auto px-6">
@@ -73,7 +73,7 @@ function Wishlist() {
                             <p className="text-gray-500 mb-8">Browse our collection to find your new favorites.</p>
                             <Link
                                 to="/shop"
-                                className="inline-block bg-black !text-white px-8 py-3 rounded-full hover:bg-[#c17f59] transition-colors"
+                                className="btn-premium inline-block !text-white hover:text-white"
                             >
                                 Start Shopping
                             </Link>
