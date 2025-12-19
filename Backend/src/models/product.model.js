@@ -1,5 +1,15 @@
 import mongoose from "mongoose";
 
+const ratingSchema = new mongoose.Schema(
+  {
+    star: { type: Number, required: true, min: 1, max: 5 },
+    comment: { type: String, required: true },
+    // User who posted the review (populate name/email from User model)
+    postedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  },
+  { timestamps: true }
+);
+
 const productSchema = mongoose.Schema(
  {
    title: {
@@ -49,17 +59,10 @@ const productSchema = mongoose.Schema(
     type: Boolean,
     default: true,
   },
-  ratings: [
-    {
-      star: { type: Number },
-      name: { type: String },
-      comment: { type: String },
-      postedBy: { type: String },
-    },
-  ],
+  ratings: [ratingSchema],
  },{ timestamps: true }
 );
-
+  
 productSchema.index({ "$**": "text" });
 const Product = mongoose.model("Product", productSchema);
 export default Product;
