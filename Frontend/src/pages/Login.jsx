@@ -2,21 +2,24 @@ import { Form, Input, Button, Checkbox, message } from "antd";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { loginUser } from '../api-service/user-service.js'
-import Cookies from "js-cookie";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { Facebook, Chrome } from "lucide-react";
+import { Facebook} from "lucide-react";
+import { FaGoogle } from "react-icons/fa";
+import { useShop } from "../context/ShopContext";
 
 function Login() {
   const [loading, setloading] = useState(false);
   const navigate = useNavigate();
+  const { refreshShop } = useShop();
 
   const onFinish = async (values) => {
     try {
       setloading(true);
       const response = await loginUser(values);
       message.success(response.message);
-      Cookies.set("token", response.token);
+      // Backend sets the auth cookie (httpOnly). Refresh context so UI updates immediately.
+      await refreshShop();
       navigate("/");
     } catch (error) {
       message.error(error.response?.data.message || error.message);
@@ -37,7 +40,7 @@ function Login() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <Navbar />
+
 
       <div className="flex-1 flex items-center justify-center py-20 px-6">
         <div className="w-full max-w-md">
@@ -100,7 +103,7 @@ function Login() {
               onClick={handleGoogleLogin}
               className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-lg supports-[hover:hover]:hover:bg-gray-50 transition-colors"
             >
-              <Chrome size={20} className="text-gray-600" />
+              <FaGoogle size={20} className="text-gray-600" />
               <span className="text-sm font-medium text-gray-700">Google</span>
             </button>
             <button

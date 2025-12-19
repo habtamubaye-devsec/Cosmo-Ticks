@@ -12,6 +12,7 @@
   --font-serif: "Playfair Display", serif;
 
   --animate-fade-in: fade-in 0.8s ease-out;
+  --animate-scale-up: scale-up 0.3s ease-out forwards;
 
   @keyframes fade-in {
     from {
@@ -24,18 +25,68 @@
       transform: translateY(0);
     }
   }
+
+  @keyframes scale-up {
+    from {
+      transform: scale(1);
+    }
+
+    to {
+      transform: scale(1.05);
+    }
+  }
 }
 
 body {
   font-family: var(--font-sans);
-  background-color: #ffffff;
-  color: var(--color-text-main);
+  background-color: var(--color-background-warm);
+  color: #1a1a1a;
+  /* Darker, crisp black */
   -webkit-font-smoothing: antialiased;
 }
 
 /* Typography Utilities */
 .font-serif {
   font-family: var(--font-serif);
+}
+
+/* Premium Button Styles */
+.btn-premium {
+  background-color: #111111;
+  color: #ffffff;
+  border: 1px solid #111111;
+  padding: 12px 32px;
+  border-radius: 9999px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.btn-premium::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #c17f59;
+  z-index: -1;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.3s ease;
+}
+
+.btn-premium:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+.btn-premium:hover {
+  border-color: #c17f59;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
 
 /* Ant Design Customizations */
@@ -46,11 +97,14 @@ body {
   font-weight: 500 !important;
   height: 48px !important;
   padding: 0 32px !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .ant-btn-primary:hover {
   background-color: #000000 !important;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
 }
 
 .ant-input,
@@ -59,14 +113,15 @@ body {
   /* Pill shaped inputs */
   padding: 12px 24px !important;
   border-color: #e5e7eb !important;
-  background-color: #f9fafb !important;
+  background-color: #ffffff !important;
+  transition: all 0.3s ease !important;
 }
 
 .ant-input:focus,
 .ant-input-affix-wrapper-focused {
   border-color: #c17f59 !important;
   background-color: #fff !important;
-  box-shadow: 0 0 0 2px rgba(193, 127, 89, 0.1) !important;
+  box-shadow: 0 0 0 4px rgba(193, 127, 89, 0.1) !important;
 }
 
 .ant-form-item-label label {
