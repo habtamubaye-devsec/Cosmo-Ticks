@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Table, message, Popconfirm } from "antd";
 import { Trash } from "lucide-react";
-import { getAllUser } from "../api-service/user-service";
+import { deletedUser, getAllUser } from "../api-service/user-service";
 
 function User() {
   const [data, setData] = useState([]); // initialize as empty array
@@ -31,9 +31,14 @@ function User() {
     getData();
   }, []);
 
-  const handleDelete = (id) => {
-    setData((prev) => prev.filter((item) => item._id !== id));
-    message.success("User deleted successfully");
+  const handleDelete = async (id) => {
+    try {
+      await deletedUser(id);
+      setData((prev) => prev.filter((item) => item._id !== id));
+      message.success("User deleted successfully");
+    } catch (error) {
+      message.error(error.response?.data?.message || error.message || "Delete failed");
+    }
   };
 
   const columns = [

@@ -12,8 +12,10 @@ import cartRoutes from './src/Route/cartRoute.js'
 import orderRoutes from "./src/Route/orderRoutes.js";
 import wishlistRoutes from "./src/Route/wishlistRoute.js";
 import categoryRoutes from "./src/Route/categoryRoute.js";
+import logRoutes from "./src/Route/logRoute.js";
 import { handleStripeWebhook } from "./src/Controller/order.controller.js";
 import passport from "./src/config/passport.js";
+import { auditLogger } from "./src/Middleware/audit.middleware.js";
 
 
 dotenv.config();
@@ -37,6 +39,9 @@ app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(cookieParser()); // Initialize cookie-parser
 app.use(passport.initialize()); // Initialize Passport
 
+// Best-effort audit logger for admin write actions.
+app.use(auditLogger);
+
 // Routes
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/products", productRoutes);
@@ -46,6 +51,7 @@ app.use("/api/v1/cart", cartRoutes);
 app.use("/api/v1/order", orderRoutes);
 app.use("/api/v1/wishlist", wishlistRoutes);
 app.use("/api/v1/category", categoryRoutes);
+app.use("/api/v1/logs", logRoutes);
 
 // Error handlers (should come last)
 app.use(notFound);

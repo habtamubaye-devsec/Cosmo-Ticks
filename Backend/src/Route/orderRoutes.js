@@ -9,7 +9,7 @@ import {
   handleStripeWebhook,
   confirmCheckoutSession,
 } from "../Controller/order.controller.js";
-import { validateToken } from "../Middleware/auth.middleware.js";
+import { validateAdmin, validateToken } from "../Middleware/auth.middleware.js";
 
 const router = express.Router();
 
@@ -31,9 +31,9 @@ router.post("/confirm", validateToken, confirmCheckoutSession);
 router.post("/webhook", handleStripeWebhook);
 
 // ------------------- ORDERS CRUD -------------------
-router.put("/update/:id", validateToken, updateOrder);
-router.delete("/delete/:id", validateToken, deleteOrder);
+router.put("/update/:id", validateAdmin, updateOrder);
+router.delete("/delete/:id", validateAdmin, deleteOrder);
 router.get("/user/:userId", validateToken, getUserOrder);
-router.get("/", validateToken, getAllOrders);
+router.get("/", validateAdmin, getAllOrders);
 
 export default router;

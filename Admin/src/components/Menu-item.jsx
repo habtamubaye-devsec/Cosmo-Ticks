@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { message } from "antd";
-import { Home, List, UserRound, LogOut, Settings, BarChart2, FileText, Package, CheckSquare, ShoppingBag } from "lucide-react";
+import { Home, List, UserRound, LogOut, Settings, BarChart2, FileText, Package, CheckSquare, ShoppingBag, Database } from "lucide-react";
 import { logoutUser } from "../api-service/auth-service";
 
 function MenuItems({ user, setUser }) {
@@ -18,6 +18,7 @@ function MenuItems({ user, setUser }) {
     { name: "Users", path: "/admin/users", icon: <UserRound size={iconSize} /> },
     { name: "Category", path: "/admin/category", icon: <FileText size={iconSize} /> },
     { name: "Charts", path: "/admin/charts", icon: <BarChart2 size={iconSize} /> },
+    { name: "Backups", path: "/admin/backups", icon: <Database size={iconSize} /> },
     { name: "Performance Logs", path: "/admin/all-logs", icon: <CheckSquare size={iconSize} /> },
     { name: "Settings", path: "/admin/settings", icon: <Settings size={iconSize} /> },
     // { name: "Profile", path: "/admin/profile", icon: <List size={iconSize} /> }, // Moved to header dropdown

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AdminLayout from "./layout/AdminLayout";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -18,7 +18,8 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-          <Route path="/login" element={<Login/>}/>
+        <Route path="/" element={<Navigate to="/admin" replace />} />
+        <Route path="/login" element={<Login />} />
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Home />} /> {/* /admin */}
@@ -34,6 +35,8 @@ function App() {
           <Route path="charts" element={<Chart />} />         {/* /admin/charts */}
           <Route path="all-logs" element={<AllLogs />} />     {/* /admin/all-logs */}
         </Route>
+
+        <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
     </BrowserRouter>
   );

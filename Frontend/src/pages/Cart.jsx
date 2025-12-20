@@ -107,7 +107,11 @@ function Cart() {
       throw new Error("Checkout session creation failed");
     } catch (error) {
       console.error(error);
-      message.error(error?.message || "Failed to checkout");
+      const msg =
+        error?.message ||
+        error?.response?.data?.message ||
+        "Failed to checkout";
+      message.error(msg);
     } finally {
       setLoading(false);
     }

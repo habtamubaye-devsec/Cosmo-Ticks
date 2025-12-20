@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Table, Button, Popconfirm, message, Tooltip } from "antd";
+import { Table, Button, Popconfirm, message, Tooltip, Alert } from "antd";
 import { Edit2, Trash2, Plus, Package, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getAllProducts, deleteProduct } from "../api-service/product-service";
@@ -27,6 +27,8 @@ const ProductPage = () => {
     fetchProducts();
   }, []);
 
+  const outOfStockCount = products.filter((p) => (Number(p?.quantity) || 0) <= 0).length;
+
   const handleDelete = async (id) => {
     try {
       await deleteProduct(id);
@@ -45,7 +47,7 @@ const ProductPage = () => {
       render: (_, record) => (
         <div className="flex items-center gap-4">
           <div className="h-12 w-12 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden flex-shrink-0">
-            <img src={record.img} alt="" className="w-full h-full object-cover" />
+            <img src={record.img?.[0]} alt="" className="w-full h-full object-cover" />
           </div>
           <div>
             <p className="font-medium text-gray-900 line-clamp-1">{record.title}</p>
@@ -55,18 +57,49 @@ const ProductPage = () => {
       )
     },
     {
-      title: "Price",
+      title: "Ordinary",
       dataIndex: "oridinaryPrice",
-      key: "price",
-      render: (price) => <span className="font-medium text-gray-700">${price.toFixed(2)}</span>,
+      key: "oridinaryPrice",
+      render: (price) => (
+        <span className="font-medium text-gray-700">
+          {typeof price === "number" ? `$${price.toFixed(2)}` : "—"}
+        </span>
+      ),
+    },
+    {
+      title: "Discount",
+      dataIndex: "discountedPrice",
+      key: "discountedPrice",
+      render: (price) => (
+        <span className="font-medium text-gray-700">
+          {typeof price === "number" ? `$${price.toFixed(2)}` : "—"}
+        </span>
+      ),
+    },
+    {
+      title: "Qty",
+      dataIndex: "quantity",
+      key: "quantity",
+      render: (qty) => <span className="font-medium text-gray-700">{typeof qty === "number" ? qty : 0}</span>,
+    },
+    {
+      title: "Category",
+      key: "category",
+      render: (_, record) => <span className="text-gray-700">{record.category?.[0] || "—"}</span>,
+    },
+    {
+      title: "Subcategory",
+      dataIndex: "subCategory",
+      key: "subCategory",
+      render: (v) => <span className="text-gray-700">{v || "—"}</span>,
     },
     {
       title: "Stock Status",
-      dataIndex: "inStock",
       key: "status",
-      render: (inStock) => {
-        // Logic can be refined if there's actual quantity number, assuming boolean for now
-        if (inStock) {
+      render: (_, record) => {
+        const quantity = typeof record.quantity === "number" ? record.quantity : 0;
+        const inStock = typeof record.inStock === "boolean" ? record.inStock : quantity > 0;
+        if (inStock && quantity > 0) {
           return (
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium border border-green-200">
               <CheckCircle size={12} />
@@ -131,6 +164,15 @@ const ProductPage = () => {
           Add Product
         </Button>
       </div>
+
+      {outOfStockCount > 0 && (
+        <Alert
+          type="warning"
+          showIcon
+          message={`${outOfStockCount} product${outOfStockCount === 1 ? " is" : "s are"} out of stock`}
+          description="Update the quantity to make them available to users again."
+        />
+      )}
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <Table

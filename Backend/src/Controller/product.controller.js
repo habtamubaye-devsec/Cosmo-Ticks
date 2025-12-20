@@ -3,6 +3,36 @@ import mongoose from "mongoose";
 import Product from "../models/product.model.js";
 import User from "../models/user.model.js";
 
+const safeJsonParse = (value) => {
+  if (typeof value !== "string") return undefined;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return undefined;
+  }
+};
+
+const parseStringArray = (value) => {
+  if (value == null) return undefined;
+  if (Array.isArray(value)) return value.map((v) => String(v)).filter(Boolean);
+  if (typeof value === "string") {
+    const parsed = safeJsonParse(value);
+    if (Array.isArray(parsed)) return parsed.map((v) => String(v)).filter(Boolean);
+    // fallback: allow comma/newline separated strings
+    return value
+      .split(/\r?\n|,/g)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return undefined;
+};
+
+const toNumberOrUndefined = (value) => {
+  if (value == null || value === "") return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+};
+
 const normalizeRatingsForUser = (ratings, userId) => {
   const uid = String(userId || "");
   const list = Array.isArray(ratings) ? ratings : [];
@@ -34,8 +64,16 @@ const createProduct = asyncHandler(async (req, res) => {
 
   const mediaUrls = req.files.map((file) => file.path);
 
+  const category = parseStringArray(req.body.category);
+  const whatInbox = parseStringArray(req.body.whatInbox);
+  const quantity = toNumberOrUndefined(req.body.quantity);
+
   const newProduct = new Product({
     ...req.body,
+    category: category ?? req.body.category,
+    whatInbox: whatInbox ?? req.body.whatInbox,
+    quantity: quantity ?? req.body.quantity,
+    inStock: typeof quantity === "number" ? quantity > 0 : true,
     img: mediaUrls,
   });
 
@@ -52,11 +90,37 @@ const createProduct = asyncHandler(async (req, res) => {
 
 //UPDATE PRODUCT
 const updateProduct = asyncHandler(async (req, res) => {
-  const updatedProduct = await Product.findByIdAndUpdate(
-    req.params.id,
-    { $set: req.body },
-    { new: true }
-  );
+  const category = parseStringArray(req.body.category);
+  const whatInbox = parseStringArray(req.body.whatInbox);
+  const quantity = toNumberOrUndefined(req.body.quantity);
+
+  const existingImagesRaw = req.body.existingImages;
+  const existingImages = Array.isArray(existingImagesRaw)
+    ? existingImagesRaw
+    : typeof existingImagesRaw === "string" && existingImagesRaw
+      ? [existingImagesRaw]
+      : [];
+
+  const newUploads = Array.isArray(req.files) ? req.files.map((f) => f.path) : [];
+
+  const update = {
+    ...req.body,
+    category: category ?? req.body.category,
+    whatInbox: whatInbox ?? req.body.whatInbox,
+  };
+
+  if (typeof quantity === "number") {
+    update.quantity = quantity;
+    // Keep inStock consistent with quantity.
+    update.inStock = quantity > 0;
+  }
+
+  // If the client sent existingImages and/or uploaded new files, update img.
+  if (existingImages.length || newUploads.length) {
+    update.img = [...existingImages, ...newUploads];
+  }
+
+  const updatedProduct = await Product.findByIdAndUpdate(req.params.id, { $set: update }, { new: true });
 
   if (updatedProduct) {
     res.status(200).json({

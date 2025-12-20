@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Table, Button, Popconfirm, message, Tooltip, Modal, Input, Upload, Spin } from "antd";
 import { Edit2, Trash2, Plus, ChevronDown, Upload as UploadIcon, Loader } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import {
   getAllCategories,
   createCategory,
@@ -10,7 +9,6 @@ import {
 } from "../api-service/category-service";
 
 const CategoryManagerPage = () => {
-  const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [expandedRows, setExpandedRows] = useState({});
@@ -74,6 +72,10 @@ const CategoryManagerPage = () => {
     setSubCategories([...subCategories, { name: "", image: null, isNewImage: true }]);
   };
 
+  const handleRemoveSubCategory = (index) => {
+    setSubCategories((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubCategoryChange = (index, field, value) => {
     const updated = [...subCategories];
     updated[index][field] = value;
@@ -84,15 +86,35 @@ const CategoryManagerPage = () => {
     if (!categoryName) return message.error("Category name is required");
     if (!categoryImage && !editingCategory) return message.error("Category image is required");
 
+    const cleanedSubCategories = (subCategories || [])
+      .map((s) => ({
+        name: (s.name || "").trim(),
+        image: s.image,
+        isNewImage: !!s.isNewImage,
+      }))
+      .filter((s) => s.name.length > 0);
+
+    for (const sub of cleanedSubCategories) {
+      // New subcategory must include an uploaded image
+      if (!editingCategory) {
+        if (!sub.image) return message.error(`Image required for subcategory: ${sub.name}`);
+      } else {
+        if (sub.isNewImage && !sub.image) return message.error(`Upload an image for subcategory: ${sub.name}`);
+        if (!sub.isNewImage && !sub.image) return message.error(`Missing image for subcategory: ${sub.name}`);
+      }
+    }
+
     const formData = new FormData();
     formData.append("name", categoryName);
     if (categoryImage) formData.append("categoryImage", categoryImage);
 
-    const subCatData = subCategories.map(sub => {
+    // Keep JSON payload serializable. For new images, send image: null and rely on appended files.
+    const subCatData = cleanedSubCategories.map((sub) => {
       if (sub.isNewImage && sub.image) {
         formData.append("subImages", sub.image);
+        return { name: sub.name, image: null, isNewImage: true };
       }
-      return { name: sub.name, image: sub.image, isNewImage: sub.isNewImage };
+      return { name: sub.name, image: sub.image, isNewImage: false };
     });
     formData.append("subCategory", JSON.stringify(subCatData));
 
@@ -254,16 +276,30 @@ const CategoryManagerPage = () => {
                     value={sub.name}
                     onChange={(e) => handleSubCategoryChange(idx, "name", e.target.value)}
                   />
+
                   <Upload
                     beforeUpload={(file) => {
                       handleSubCategoryChange(idx, "image", file);
                       handleSubCategoryChange(idx, "isNewImage", true);
                       return false;
                     }}
-                    showUploadList={sub.isNewImage && sub.image ? [{ name: sub.image.name }] : []}
+                    showUploadList={
+                      sub.isNewImage && sub.image && typeof sub.image !== "string"
+                        ? [{ name: sub.image.name }]
+                        : []
+                    }
                   >
                     <Button icon={<UploadIcon />}>Upload Image</Button>
                   </Upload>
+
+                  <Tooltip title="Remove subcategory">
+                    <Button
+                      danger
+                      shape="circle"
+                      icon={<Trash2 size={16} />}
+                      onClick={() => handleRemoveSubCategory(idx)}
+                    />
+                  </Tooltip>
                 </div>
               ))}
               <Button onClick={handleAddSubCategory} icon={<Plus />}>

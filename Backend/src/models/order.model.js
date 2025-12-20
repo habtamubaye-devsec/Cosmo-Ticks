@@ -48,6 +48,13 @@ const orderSchema = mongoose.Schema(
       type: Number,
       default: 0,
     },
+    stockRestored: {
+      type: Boolean,
+      default: false,
+    },
+    stockRestoredAt: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );

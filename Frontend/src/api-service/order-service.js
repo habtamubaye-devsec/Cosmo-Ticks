@@ -7,12 +7,12 @@ const API = axios.create({
 
 // ------------------- CREATE SINGLE PRODUCT CHECKOUT SESSION -------------------
 export const createSingleCheckoutSessionService = async (productId, quantity) => {
-  const res = await axios.post(
-    `http://localhost:8000/api/v1/order/checkout/single/${productId}`,
-    { quantity },
-    { withCredentials: true }
-  );
-  return res.data;
+  try {
+    const res = await API.post(`/checkout/single/${productId}`, { quantity });
+    return res.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
 };
 
 

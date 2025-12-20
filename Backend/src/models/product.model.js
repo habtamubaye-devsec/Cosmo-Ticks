@@ -21,12 +21,14 @@ const productSchema = mongoose.Schema(
     required: true,
   },
   whatInbox: {
-    type: String,
+    type: [String],
     required: true,
+    default: [],
   },
   img: {
-    type: Array,
+    type: [String],
     required: true,
+    default: [],
   },
   video: {
     type: String,
@@ -38,7 +40,11 @@ const productSchema = mongoose.Schema(
     type: Number,
   },
   category: {
-    type: Array,
+    type: [String],
+    default: [],
+  },
+  subCategory: {
+    type: String,
   },
   concern: {
     type: Array,
@@ -54,6 +60,11 @@ const productSchema = mongoose.Schema(
   },
   discountedPrice: {
     type: Number,
+  },
+  quantity: {
+    type: Number,
+    default: 0,
+    min: 0,
   },
   inStock: {
     type: Boolean,

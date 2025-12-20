@@ -2,13 +2,13 @@ import axios from "axios";
 
 // Create Axios instance with base URL
 const API = axios.create({
-  baseURL: "http://localhost:8000/api/v1",
+  baseURL: (import.meta.env.VITE_API_URL || "/api/v1"),
   withCredentials: true, // send cookies automatically
 });
 // Fetch all orders
 export const getAllOrders = async () => {
   const response = await API.get("/order/");
-  return response.data; // assume { orders: [...] }
+  return response.data; // backend returns { data: [...] }
 };
 
 // Mark order as delivered (status)

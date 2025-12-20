@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:8000/api/v1",
+  baseURL: (import.meta.env.VITE_API_URL || "/api/v1"),
   withCredentials: true, // send cookies automatically
 });
 
@@ -28,6 +28,15 @@ export const deleteProduct = async (id) => {
 };
 
 export const getProductById = async (id) => {
-  const response = await API.get(`products/${id}`);
+  const response = await API.get(`/products/${id}`);
+  return response.data;
+};
+
+export const updateProduct = async (id, data) => {
+  const response = await API.put(`/products/update/${id}`, data, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
   return response.data;
 };

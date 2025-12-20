@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
-import { Table, Tag, Button, message, Steps, Popover, Segmented } from "antd";
+import { Table, Tag, Button, message, Steps, Popover, Segmented, Drawer, Descriptions, Divider } from "antd";
 import { getAllOrders, updateOrder } from "../api-service/order-service";
-import { Truck, CheckCircle, Clock, XCircle, Package, MoreHorizontal } from "lucide-react";
+import { Truck, CheckCircle, Clock, XCircle, Package, MoreHorizontal, Eye } from "lucide-react";
 
 const Order = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState("All");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   const getData = async () => {
     try {
@@ -34,8 +36,21 @@ const Order = () => {
       );
       message.success("Order status updated");
     } catch (error) {
-      message.error("Failed to update status");
+      const msg = error?.response?.data?.message || error?.message || "Failed to update status";
+      message.error(msg);
     }
+  };
+
+  const openDetails = (order) => {
+    setSelectedOrder(order);
+    setDrawerOpen(true);
+  };
+
+  const formatDateTime = (value) => {
+    if (!value) return "—";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleString();
   };
 
   const getStatusStep = (status) => {
@@ -123,6 +138,18 @@ const Order = () => {
       render: (status) => <StatusProgress status={status} />,
     },
     {
+      title: "Details",
+      key: "details",
+      width: 90,
+      render: (_, record) => (
+        <Button
+          size="small"
+          onClick={() => openDetails(record)}
+          icon={<Eye size={16} />}
+        />
+      ),
+    },
+    {
       title: "Action",
       key: "action",
       render: (_, record) => {
@@ -158,6 +185,21 @@ const Order = () => {
     },
   ];
 
+  const drawerOrder = selectedOrder;
+  const drawerItems = Array.isArray(drawerOrder?.products) ? drawerOrder.products : [];
+  const itemsData = drawerItems.map((p, idx) => {
+    const qty = Number(p?.quantity) || 0;
+    const unit = Number(p?.product?.discountedPrice ?? p?.product?.oridinaryPrice ?? 0) || 0;
+    return {
+      key: String(p?.product?._id || p?.product || idx),
+      title: p?.product?.title || "Unknown product",
+      qty,
+      unit,
+      subtotal: qty * unit,
+      img: Array.isArray(p?.product?.img) ? p.product.img[0] : p?.product?.img,
+    };
+  });
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex justify-between items-end">
@@ -184,6 +226,102 @@ const Order = () => {
           pagination={{ pageSize: 8 }}
         />
       </div>
+
+      <Drawer
+        title="Order Details"
+        open={drawerOpen}
+        width={560}
+        onClose={() => setDrawerOpen(false)}
+      >
+        {!drawerOrder ? (
+          <div className="text-gray-500">No order selected</div>
+        ) : (
+          <>
+            <Descriptions
+              size="small"
+              column={1}
+              items={[
+                {
+                  key: "id",
+                  label: "Order ID",
+                  children: <span className="font-mono text-xs">{drawerOrder._id}</span>,
+                },
+                {
+                  key: "paymentId",
+                  label: "Payment ID",
+                  children: <span className="font-mono text-xs">{drawerOrder.paymentId || "—"}</span>,
+                },
+                {
+                  key: "customer",
+                  label: "Customer",
+                  children: `${drawerOrder.user?.name || "Unknown"} (${drawerOrder.user?.email || drawerOrder.email || "—"})`,
+                },
+                {
+                  key: "createdAt",
+                  label: "Created",
+                  children: formatDateTime(drawerOrder.createdAt),
+                },
+                {
+                  key: "updatedAt",
+                  label: "Updated",
+                  children: formatDateTime(drawerOrder.updatedAt),
+                },
+                {
+                  key: "total",
+                  label: "Total",
+                  children: <span className="font-medium">${Number(drawerOrder.total || 0).toFixed(2)}</span>,
+                },
+                {
+                  key: "restocked",
+                  label: "Stock Restored",
+                  children: drawerOrder.status === 4 ? (drawerOrder.stockRestored ? "Yes" : "No") : "—",
+                },
+              ]}
+            />
+
+            <Divider className="my-4" />
+
+            <div className="font-medium text-gray-900 mb-3">Items</div>
+            <Table
+              size="small"
+              rowKey="key"
+              pagination={false}
+              dataSource={itemsData}
+              columns={[
+                {
+                  title: "Product",
+                  key: "product",
+                  render: (_, r) => (
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden flex-shrink-0">
+                        {r.img ? (
+                          <img src={r.img} alt="" className="w-full h-full object-cover" />
+                        ) : null}
+                      </div>
+                      <div className="text-gray-900">{r.title}</div>
+                    </div>
+                  ),
+                },
+                { title: "Qty", dataIndex: "qty", key: "qty", width: 70 },
+                {
+                  title: "Unit",
+                  dataIndex: "unit",
+                  key: "unit",
+                  width: 110,
+                  render: (v) => `$${Number(v || 0).toFixed(2)}`,
+                },
+                {
+                  title: "Subtotal",
+                  dataIndex: "subtotal",
+                  key: "subtotal",
+                  width: 120,
+                  render: (v) => <span className="font-medium">${Number(v || 0).toFixed(2)}</span>,
+                },
+              ]}
+            />
+          </>
+        )}
+      </Drawer>
     </div>
   );
 };

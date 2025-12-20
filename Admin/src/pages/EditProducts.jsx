@@ -8,11 +8,10 @@ import {
   message,
   Upload,
   Select,
-  Switch,
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
-import { getProductById } from "../api-service/product-service"; // ensure this exists
-import axios from "axios";
+import { getProductById, updateProduct } from "../api-service/product-service";
+import { getAllCategories } from "../api-service/category-service";
 
 const { TextArea } = Input;
 
@@ -21,6 +20,8 @@ const EditProduct = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [fileList, setFileList] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [form] = Form.useForm();
 
   // Fetch product data and prefill form
@@ -31,12 +32,31 @@ const EditProduct = () => {
         const res = await getProductById(id); // returns { message, product }
         const product = res.product; // grab the actual product object
 
+        const catRes = await getAllCategories();
+        const list = Array.isArray(catRes?.categories) ? catRes.categories : [];
+        setCategories(list);
+
+        const categoryName = product?.category?.[0];
+        const matchedCategory = list.find((c) => String(c?.name) === String(categoryName));
+        const categoryId = matchedCategory?._id;
+        setSelectedCategoryId(categoryId || null);
+
+        const whatInbox = Array.isArray(product?.whatInbox)
+          ? product.whatInbox
+          : typeof product?.whatInbox === "string" && product.whatInbox
+            ? [product.whatInbox]
+            : [];
+
         // Prefill form fields
         form.setFieldsValue({
-          ...product,
-          category: product.category || [],
-          concern: product.concern || [],
-          inStock: product.inStock || false,
+          title: product?.title,
+          description: product?.description,
+          whatInbox,
+          oridinaryPrice: product?.oridinaryPrice,
+          discountedPrice: product?.discountedPrice,
+          quantity: typeof product?.quantity === "number" ? product.quantity : 0,
+          categoryId: categoryId,
+          subCategory: product?.subCategory,
         });
 
         // Prefill existing images
@@ -66,6 +86,10 @@ const EditProduct = () => {
   const onFinish = async (values) => {
     const formData = new FormData();
 
+    const selected = categories.find((c) => String(c?._id) === String(values.categoryId));
+    const categoryName = selected?.name;
+    if (!categoryName) return message.error("Select a category");
+
     // Add new or existing images
     fileList.forEach((file) => {
       if (file.originFileObj) {
@@ -75,28 +99,18 @@ const EditProduct = () => {
       }
     });
 
-    // Append other form fields
-    for (let key in values) {
-      // If array (tags), append as JSON string
-      if (Array.isArray(values[key])) {
-        formData.append(key, JSON.stringify(values[key]));
-      } else {
-        formData.append(key, values[key]);
-      }
-    }
+    formData.append("title", values.title);
+    formData.append("description", values.description);
+    formData.append("whatInbox", JSON.stringify(values.whatInbox || []));
+    formData.append("oridinaryPrice", String(values.oridinaryPrice ?? 0));
+    formData.append("discountedPrice", String(values.discountedPrice ?? 0));
+    formData.append("quantity", String(values.quantity ?? 0));
+    formData.append("category", JSON.stringify([categoryName]));
+    formData.append("subCategory", values.subCategory);
 
     setLoading(true);
     try {
-      const res = await axios.put(
-        `http://localhost:8000/api/v1/products/update/${id}`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
+      await updateProduct(id, formData);
       message.success("Product updated successfully!");
       navigate("/admin/products");
     } catch (err) {
@@ -124,14 +138,14 @@ const EditProduct = () => {
         </Form.Item>
 
         <Form.Item
-          label="What Inbox?"
+          label="What's in the box"
           name="whatInbox"
           rules={[{ required: true }]}
         >
-          <Input />
+          <Select mode="tags" placeholder="Type an item and press enter" />
         </Form.Item>
 
-        <Form.Item label="Image" required>
+        <Form.Item label="Images (first = thumbnail)" required>
           <Upload
             beforeUpload={() => false}
             fileList={fileList}
@@ -143,10 +157,6 @@ const EditProduct = () => {
           </Upload>
         </Form.Item>
 
-        <Form.Item label="Video URL" name="video">
-          <Input />
-        </Form.Item>
-
         <Form.Item label="Ordinary Price" name="oridinaryPrice">
           <InputNumber min={0} prefix="$" style={{ width: "100%" }} />
         </Form.Item>
@@ -155,35 +165,32 @@ const EditProduct = () => {
           <InputNumber min={0} prefix="$" style={{ width: "100%" }} />
         </Form.Item>
 
-        <Form.Item label="Wholesale Price" name="wholeSalePrice">
-          <InputNumber min={0} prefix="$" style={{ width: "100%" }} />
+        <Form.Item label="Quantity" name="quantity" rules={[{ required: true }]}>
+          <InputNumber min={0} style={{ width: "100%" }} />
         </Form.Item>
 
-        <Form.Item
-          label="Wholesale Minimum Quantity"
-          name="WholeSaleMinimumQuantity"
-        >
-          <InputNumber min={1} style={{ width: "100%" }} />
+        <Form.Item label="Category" name="categoryId" rules={[{ required: true }]}>
+          <Select
+            placeholder="Select category"
+            options={categories.map((c) => ({ label: c?.name, value: c?._id }))}
+            onChange={(value) => {
+              setSelectedCategoryId(value);
+              form.setFieldValue("subCategory", undefined);
+            }}
+          />
         </Form.Item>
 
-        <Form.Item label="Category" name="category">
-          <Select mode="tags" placeholder="Enter categories"></Select>
-        </Form.Item>
-
-        <Form.Item label="Concern" name="concern">
-          <Select mode="tags" placeholder="Enter concerns"></Select>
-        </Form.Item>
-
-        <Form.Item label="Brand" name="brand">
-          <Input />
-        </Form.Item>
-
-        <Form.Item label="Skin Type" name="skinType">
-          <Input />
-        </Form.Item>
-
-        <Form.Item label="In Stock" name="inStock" valuePropName="checked">
-          <Switch />
+        <Form.Item label="Subcategory" name="subCategory" rules={[{ required: true }]}>
+          <Select
+            placeholder={selectedCategoryId ? "Select subcategory" : "Select category first"}
+            disabled={!selectedCategoryId}
+            options={
+              (categories.find((c) => String(c?._id) === String(selectedCategoryId))?.subCategory || []).map((s) => ({
+                label: s?.name,
+                value: s?.name,
+              }))
+            }
+          />
         </Form.Item>
 
         <Form.Item>

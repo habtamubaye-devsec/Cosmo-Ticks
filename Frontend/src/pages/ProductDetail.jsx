@@ -120,7 +120,11 @@ function ProductDetail() {
       }
     } catch (error) {
       console.error(error);
-      message.error(error.message || "Failed to checkout");
+      const msg =
+        error?.message ||
+        error?.response?.data?.message ||
+        "Failed to checkout";
+      message.error(msg);
     }
   };
 

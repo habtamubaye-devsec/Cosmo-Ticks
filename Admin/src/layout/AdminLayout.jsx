@@ -1,22 +1,85 @@
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, Navigate, Link, useLocation } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { useEffect, useState } from "react";
 import { getCurrentUser, logoutUser } from "../api-service/auth-service";
-import { message, Spin, Avatar, Dropdown } from "antd";
+import { message, Spin, Avatar, Dropdown, Breadcrumb } from "antd";
 import { User, Bell, Search, ChevronDown } from "lucide-react";
+
+const titleCase = (s) =>
+  String(s || "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+
+const breadcrumbFromPath = (pathname) => {
+  // Admin routes are nested under /admin
+  const path = String(pathname || "");
+
+  // Known special cases first (so we can hide IDs, etc.)
+  const editProductMatch = path.match(/^\/admin\/products\/edit\/([^/]+)\/?$/);
+  if (editProductMatch) {
+    return [
+      { label: "Dashboard", to: "/admin" },
+      { label: "Products", to: "/admin/products" },
+      { label: "Edit Product" },
+    ];
+  }
+
+  const addProductMatch = path.match(/^\/admin\/products\/add\/?$/);
+  if (addProductMatch) {
+    return [
+      { label: "Dashboard", to: "/admin" },
+      { label: "Products", to: "/admin/products" },
+      { label: "Add Product" },
+    ];
+  }
+
+  const baseMap = {
+    admin: "Dashboard",
+    profile: "Profile",
+    users: "Users",
+    products: "Products",
+    order: "Orders",
+    category: "Category",
+    settings: "Settings",
+    backups: "Backups",
+    charts: "Charts",
+    "all-logs": "Performance Logs",
+  };
+
+  const parts = path.split("?")[0].split("#")[0].split("/").filter(Boolean);
+  if (parts.length === 0) return [{ label: "Dashboard", to: "/admin" }];
+
+  // Always start with Dashboard for clarity
+  const items = [{ label: "Dashboard", to: "/admin" }];
+  if (parts[0] !== "admin") return items;
+
+  let acc = "/admin";
+  for (let i = 1; i < parts.length; i += 1) {
+    const seg = parts[i];
+    acc += `/${seg}`;
+    const label = baseMap[seg] || titleCase(seg);
+
+    // Make intermediate segments clickable, last one not.
+    const isLast = i === parts.length - 1;
+    items.push(isLast ? { label } : { label, to: acc });
+  }
+
+  return items;
+};
 
 function AdminLayout() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const fetchUser = async () => {
     try {
       const response = await getCurrentUser();
       setUser(response.data);
-    } catch (error) {
-      message.error(error.response?.data?.message || error.message);
-      navigate("/login");
+    } catch {
+      // If not authenticated, just show the login page (no noisy toast).
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -34,10 +97,7 @@ function AdminLayout() {
     );
   }
 
-  if (!user || user.role !== "admin") {
-    navigate("/login");
-    return null;
-  }
+  if (!user || user.role !== "admin") return <Navigate to="/login" replace />;
 
   const userMenu = [
     {
@@ -49,8 +109,13 @@ function AdminLayout() {
       key: 'logout',
       label: <span className="text-red-500">Sign Out</span>,
       onClick: async () => {
-        await logoutUser();
-        navigate('/login');
+        try {
+          await logoutUser();
+        } catch (error) {
+          message.error(error.response?.data?.message || error.message);
+        } finally {
+          navigate('/login');
+        }
       }
     }
   ];
@@ -100,6 +165,20 @@ function AdminLayout() {
 
         {/* Page Content Scroller */}
         <main className="flex-1 overflow-auto p-6 md:p-8">
+          <div className="mb-4">
+            <Breadcrumb
+              separator="/"
+              items={breadcrumbFromPath(location.pathname).map((b) => ({
+                title: b.to ? (
+                  <Link to={b.to} className="text-gray-500 hover:text-gray-700">
+                    {b.label}
+                  </Link>
+                ) : (
+                  <span className="text-gray-900 font-medium">{b.label}</span>
+                ),
+              }))}
+            />
+          </div>
           <Outlet />
         </main>
       </div>

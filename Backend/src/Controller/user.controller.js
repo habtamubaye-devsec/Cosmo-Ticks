@@ -4,13 +4,31 @@ import User from "../models/user.model.js";
 
 // UPDATE USER
 const updateUser = asyncHandler(async (req, res) => {
-  if (req.body.password) {
-    req.body.password = await bcrypt.hash(req.body.password, 10);
+  // Security: normal users can only update themselves.
+  if (String(req.user?._id) !== String(req.params.id) && req.user?.role !== "admin") {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+
+  // Only admin can change role/status.
+  if (req.user?.role !== "admin") {
+    delete req.body.role;
+    delete req.body.status;
+  }
+
+  // Whitelist fields that are allowed to be updated.
+  const allowed = ["name", "email", "password", "avatar", "address", "phone", "role", "status"];
+  const nextBody = {};
+  for (const key of allowed) {
+    if (typeof req.body[key] !== "undefined") nextBody[key] = req.body[key];
+  }
+
+  if (nextBody.password) {
+    nextBody.password = await bcrypt.hash(nextBody.password, 10);
   }
 
   const updatedUser = await User.findByIdAndUpdate(
     req.params.id,
-    { $set: req.body },
+    { $set: nextBody },
     { new: true }
   ).select("-password"); // exclude password
 
