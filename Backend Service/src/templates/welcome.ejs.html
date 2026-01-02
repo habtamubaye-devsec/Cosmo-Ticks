@@ -1,43 +1,24 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Welcome to Beauty Bliss</title>
-    <style type="text/css">
-      body {
-        margin: 0;
-        padding: 0;
-        height: 100vh;
-        min-width: 100%;
-        font-family: Arial, sans-serif;
-        font-size: 16px;
-        line-height: 1.5;
-        color: #222222;
-      }
+<%- include('partials/email-top', { subject: 'Welcome to Cosmo-ticks', subtitle: 'Sustainable beauty for the modern woman' }) %>
 
-      a {
-        color: #fff;
-        text-decoration: none;
-      }
+<p style="margin:0 0 14px 0;">Hello <%= name %>,</p>
+<p style="margin:0 0 14px 0;">
+  Welcome to Cosmo-ticks. We’re glad you’re here.
+  Discover clean, ethical, and effective products designed to feel calm, clear, and consistent.
+</p>
+<p style="margin:0 0 18px 0;color:#374151;">
+  If you need help at any time, reply to this email or contact us at
+  <a href="mailto:support@cosmo-ticks.com" style="color:#c17f59;text-decoration:none;">support@cosmo-ticks.com</a>.
+</p>
 
-      h1 {
-        font-size: 24px;
-        font-weight: 700;
-        line-height: 1.25;
-        margin-top: 0;
-        margin-bottom: 15px;
-        text-align: center;
-      }
+<% if (typeof storeUrl !== 'undefined' && storeUrl) { %>
+  <div style="margin-top:18px;">
+    <a href="<%= storeUrl %>" style="display:inline-block;background:#c17f59;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:9999px;font-family:Arial, sans-serif;font-weight:700;font-size:14px;">
+      Start shopping
+    </a>
+  </div>
+<% } %>
 
-      .status {
-        color: #fff;
-        width: 100px;
-        padding: 10px;
-        animation: blink 2s infinite;
-        text-align: center;
-        margin: 0 auto;
-      }
+<%- include('partials/email-bottom') %>
 
       @keyframes blink {
         from {

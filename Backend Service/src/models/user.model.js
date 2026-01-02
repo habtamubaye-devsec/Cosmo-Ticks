@@ -29,6 +29,15 @@ const userSchema = mongoose.Schema(
       type: Number,
       default: 0,
     },
+
+    // Email idempotency flag
+    welcomeEmailSent: {
+      type: Boolean,
+      default: false,
+    },
+    welcomeEmailSentAt: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );

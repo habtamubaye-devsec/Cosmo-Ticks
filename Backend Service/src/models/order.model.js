@@ -31,6 +31,22 @@ const orderSchema = mongoose.Schema(
       type: Number,
       default: 0,
     },
+
+    // Email idempotency flags (do not overload order status)
+    pendingEmailSent: {
+      type: Boolean,
+      default: false,
+    },
+    pendingEmailSentAt: {
+      type: Date,
+    },
+    deliveredEmailSent: {
+      type: Boolean,
+      default: false,
+    },
+    deliveredEmailSentAt: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );

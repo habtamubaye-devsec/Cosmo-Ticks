@@ -1,134 +1,43 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Your Beauty Bliss Order Has Been Delivered</title>
-    <style type="text/css">
-      body {
-        margin: 0;
-        padding: 0;
-        height: 100vh;
-        min-width: 100%;
-        font-family: Arial, sans-serif;
-        font-size: 16px;
-        line-height: 1.5;
-        color: #222222;
-      }
+<%- include('partials/email-top', { subject: 'Your order has been delivered', subtitle: 'Delivered' }) %>
 
-      a {
-      
-        text-decoration: none;
-      }
+<p style="margin:0 0 14px 0;">Hello <%= name %>,</p>
+<p style="margin:0 0 18px 0;color:#374151;">
+  Your order has been delivered. Thanks for shopping with Cosmo-ticks.
+</p>
 
-      h1 {
-        font-size: 24px;
-        font-weight: 700;
-        line-height: 1.25;
-        margin-top: 0;
-        margin-bottom: 15px;
-        text-align: center;
-      }
-
-      p {
-        margin-top: 0;
-        margin-bottom: 24px;
-      }
-
-      .email-wrapper {
-        max-width: 700px;
-        margin: 0 auto;
-        background-color: #fff;
-        padding: 20px;
-      }
-
-      .email-header {
-        background-color: #1e1e1e;
-        padding: 30px;
-        color: #f086d9;
-        text-align: center;
-      }
-
-      .email-body {
-        padding: 14px;
-        background-color: #f4f3f3;
-        height: 70vh;
-      }
-
-      .email-footer {
-        background-color: #1e1e1e;
-        padding: 14px;
-        color: #d55fbb;
-        text-align: center;
-      }
-
-      .product-list {
-        margin: 20px 0;
-      }
-
-      .product-item {
-        display: flex;
-        align-items: center;
-        margin-bottom: 20px;
-      }
-
-      .product-img {
-        max-width: 100px;
-        margin-right: 20px;
-      }
-
-      .product-details {
-        font-size: 14px;
-      }
-
-      img {
-        max-width: 100%;
-        height: auto;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="email-wrapper">
-      <div class="email-header">
-        <img
-          src="https://res.cloudinary.com/dap91fhxh/image/upload/v1723705045/blisslogo1_hefbyn.png"
-          height="200px"
-          width="200px"
-          alt="Beauty Bliss Logo"
-        />
-      </div>
-      <div class="email-body">
-        <h1>Your Order Has Been Delivered</h1>
-        <p>Hello <%= name %>,</p>
-        <p>
-          Great news! Your Beauty Bliss order has been delivered and is ready
-          for pick up at the following location:
-        </p>
-        <p><strong>Pickup Station:</strong> Kansas, 1234 DownTown, USA</p>
-        <div class="divider"></div>
-        <h2>Order Summary</h2>
-        <div class="product-list">
-          <% products.forEach(function(product) { %>
-          <div class="product-item">
-            <img
-              class="product-img"
-              src="<%= product.img %>"
-              alt="<%= product.title %>"
-            />
-            <div class="product-details">
-              <p><strong>Product:</strong> <%= product.title %></p>
-              <p><strong>Quantity:</strong> <%= product.quantity %></p>
-              <p><strong>Price:</strong> $<%= product.price %></p>
-            </div>
-          </div>
-          <% }); %>
+<div style="margin:18px 0 10px 0;font-weight:700;">Order summary</div>
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
+  <% (products || []).forEach(function(product){ %>
+    <tr>
+      <td style="padding:10px 0;border-top:1px solid #f1f5f9;vertical-align:top;width:72px;">
+        <% if (product && product.img) { %>
+          <img src="<%= product.img %>" alt="" width="60" height="60" style="display:block;border-radius:12px;object-fit:cover;" />
+        <% } %>
+      </td>
+      <td style="padding:10px 0;border-top:1px solid #f1f5f9;vertical-align:top;">
+        <div style="font-weight:700;color:#111827;">
+          <%= product.title || 'Product' %>
         </div>
-        <p>If you have any questions or need further assistance, feel free to <a href="">contact us</a>.</p>
-        <p>Thank you for shopping with us!</p>
-      </div>
-      <div class="email-footer">
-        <p>&copy;2024 Beauty Bliss. All rights reserved.</p>
-      </div>
-    </div>
-  </body>
-</html>
+        <div style="font-size:13px;color:#6b7280;margin-top:2px;">
+          <% if (product.quantity) { %>Qty: <%= product.quantity %> · <% } %>
+          Price: $<%= product.price %>
+        </div>
+      </td>
+    </tr>
+  <% }) %>
+</table>
+
+<% if (typeof storeUrl !== 'undefined' && storeUrl) { %>
+  <div style="margin-top:18px;">
+    <a href="<%= storeUrl %>" style="display:inline-block;background:#c17f59;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:9999px;font-family:Arial, sans-serif;font-weight:700;font-size:14px;">
+      Visit store
+    </a>
+  </div>
+<% } %>
+
+<p style="margin:18px 0 0 0;color:#374151;">
+  Questions? Email
+  <a href="mailto:support@cosmo-ticks.com" style="color:#c17f59;text-decoration:none;">support@cosmo-ticks.com</a>.
+</p>
+
+<%- include('partials/email-bottom') %>

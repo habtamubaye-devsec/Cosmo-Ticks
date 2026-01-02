@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= subject || 'Cosmo-ticks' %></title>
+  </head>
+  <body style="margin:0;padding:0;background:#f9fafb;">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f9fafb;">
+      <tr>
+        <td align="center" style="padding:24px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="width:600px;max-width:600px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;">
+            <tr>
+              <td style="padding:20px 24px;border-bottom:1px solid #f1f5f9;">
+                <div style="font-family:Georgia, 'Times New Roman', serif;font-size:24px;line-height:1.2;color:#5d7a5d;font-weight:700;">
+                  Cosmo-ticks
+                </div>
+                <% if (typeof subtitle !== 'undefined' && subtitle) { %>
+                  <div style="font-family:Arial, sans-serif;font-size:13px;line-height:1.4;color:#6b7280;margin-top:4px;">
+                    <%= subtitle %>
+                  </div>
+                <% } %>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px;font-family:Arial, sans-serif;color:#111827;font-size:15px;line-height:1.6;">
