@@ -1,34 +1,32 @@
 import { useState, useEffect } from "react";
-import { Heart, Star, Plus, Filter, X } from "lucide-react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { message } from "antd";
+import { Heart, Star, Plus, Filter, X } from "lucide-react";
 import { getAllProducts } from "../api-service/products-service";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useShop } from "../context/ShopContext";
 
-const Shop = () => {
+function Shop() {
     const { category, subcategory } = useParams();
-    const { search } = useLocation();
     const navigate = useNavigate();
-    const queryParams = new URLSearchParams(search);
-    const searchQuery = queryParams.get("search") || "";
-
     const [loading, setLoading] = useState(true);
     const [products, setProducts] = useState([]);
+    const [filteredProducts, setFilteredProducts] = useState([]);
     const [page, setPage] = useState(1);
     const [showFilters, setShowFilters] = useState(false);
-
-    // Filter states
     const [priceRange, setPriceRange] = useState([0, 1000]);
     const [minRating, setMinRating] = useState(0);
-
+    const [sortBy, setSortBy] = useState("newest");
     const {
         handleAddToCart: addToCartContext,
         handleAddToWishlist,
         handleRemoveFromWishlist,
         wishlistIds,
     } = useShop();
+
+    const location = useLocation();
+    const searchQuery = new URLSearchParams(location.search).get("search");
 
     const pageSize = 16;
 
@@ -43,19 +41,28 @@ const Shop = () => {
                     minPrice: priceRange[0] || undefined,
                     maxPrice: priceRange[1] || undefined,
                     minRating: minRating || undefined,
+                    sortBy: sortBy === "price-asc" || sortBy === "price-desc" ? "price" : sortBy === "rating" ? "rating" : undefined,
+                    order: sortBy === "price-asc" ? "asc" : sortBy === "price-desc" ? "desc" : undefined,
                 };
                 const response = await getAllProducts(params);
-                setProducts(response.product || []);
-                setPage(1);
+                const allProducts = response.product || [];
+                setProducts(allProducts);
+                setFilteredProducts(allProducts);
             } catch (error) {
-                console.error("Failed to fetch products", error);
-                message.error("Failed to load products");
+                console.error("Failed to fetch products");
+                message.error("Failed to fetch products");
             } finally {
                 setLoading(false);
             }
         };
         fetchProducts();
-    }, [category, subcategory, searchQuery, priceRange, minRating]);
+    }, [category, subcategory, searchQuery, priceRange, minRating, sortBy]);
+
+    // URL-based filtering is now handled by the API call in useEffect above.
+    // We update page state when products change.
+    useEffect(() => {
+        setPage(1);
+    }, [products]);
 
     const getBadges = (index) => {
         // Simple deterministic badge assignment
@@ -73,10 +80,10 @@ const Shop = () => {
         return { count, avg, label: avg ? avg.toFixed(1) : "0.0" };
     };
 
-    const totalPages = Math.max(1, Math.ceil((products?.length || 0) / pageSize));
+    const totalPages = Math.max(1, Math.ceil((filteredProducts?.length || 0) / pageSize));
     const safePage = Math.min(page, totalPages);
     const startIndex = (safePage - 1) * pageSize;
-    const visibleProducts = (products || []).slice(startIndex, startIndex + pageSize);
+    const visibleProducts = (filteredProducts || []).slice(startIndex, startIndex + pageSize);
 
     return (
         <div className="min-h-screen bg-white">
@@ -98,18 +105,28 @@ const Shop = () => {
             </div>
 
             <main className="container mx-auto px-6 py-20">
-                {/* Simple Toolbar */}
+                {/* Unified Toolbar */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 pb-6 border-b border-gray-100 gap-4">
-                    <p className="text-gray-500">{products.length} Product{products.length !== 1 ? 's' : ''}</p>
-                    <div className="flex items-center gap-4 w-full md:w-auto">
+                    <p className="text-gray-500">{filteredProducts.length} Product{filteredProducts.length !== 1 ? 's' : ''}</p>
+                    <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+                        <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            className="bg-white border border-gray-200 rounded-full px-4 py-2 text-sm font-medium text-gray-900 outline-none focus:border-[#c17f59] cursor-pointer"
+                        >
+                            <option value="newest">Newest First</option>
+                            <option value="price-asc">Price: Low to High</option>
+                            <option value="price-desc">Price: High to Low</option>
+                            <option value="rating">Highest Rated</option>
+                        </select>
+
                         {searchQuery && (
                             <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-full text-sm text-gray-600">
                                 <span>Search: {searchQuery}</span>
-                                <button onClick={() => navigate("/shop")}>
-                                    <X size={14} />
-                                </button>
+                                <button onClick={() => navigate('/shop')} className="hover:text-red-500"><X size={14} /></button>
                             </div>
                         )}
+
                         <button
                             onClick={() => setShowFilters(!showFilters)}
                             className={`flex items-center gap-2 font-medium transition-colors ${showFilters ? 'text-[#c17f59]' : 'text-gray-900'} hover:text-[#c17f59]`}
@@ -119,30 +136,30 @@ const Shop = () => {
                     </div>
                 </div>
 
-                {/* Filter Sidebar/Drawer placeholder */}
+                {/* Filter Panel */}
                 {showFilters && (
                     <div className="bg-[#fcfaf7] rounded-2xl p-6 mb-12 border border-[#f3eee7] animate-in fade-in slide-in-from-top-4 duration-300">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-left">
                             {/* Price Range */}
                             <div>
-                                <h4 className="font-serif text-lg mb-4">Price Range</h4>
+                                <h4 className="font-serif text-lg mb-4 text-gray-900">Price Range</h4>
                                 <div className="flex items-center gap-4">
                                     <div className="flex-1">
-                                        <label className="text-xs text-gray-400 uppercase block mb-1">Min Price</label>
+                                        <label className="text-xs text-gray-400 uppercase block mb-1">Min ($)</label>
                                         <input
                                             type="number"
                                             value={priceRange[0]}
                                             onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
-                                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#c17f59]"
+                                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#c17f59] text-gray-900"
                                         />
                                     </div>
                                     <div className="flex-1">
-                                        <label className="text-xs text-gray-400 uppercase block mb-1">Max Price</label>
+                                        <label className="text-xs text-gray-400 uppercase block mb-1">Max ($)</label>
                                         <input
                                             type="number"
                                             value={priceRange[1]}
                                             onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
-                                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#c17f59]"
+                                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#c17f59] text-gray-900"
                                         />
                                     </div>
                                 </div>
@@ -150,7 +167,7 @@ const Shop = () => {
 
                             {/* Rating */}
                             <div>
-                                <h4 className="font-serif text-lg mb-4">Minimum Rating</h4>
+                                <h4 className="font-serif text-lg mb-4 text-gray-900">Minimum Rating</h4>
                                 <div className="flex items-center gap-2">
                                     {[1, 2, 3, 4, 5].map((star) => (
                                         <button
@@ -165,7 +182,7 @@ const Shop = () => {
                                             />
                                         </button>
                                     ))}
-                                    <span className="ml-2 text-sm text-gray-500">
+                                    <span className="ml-2 text-sm text-gray-500 font-medium">
                                         {minRating > 0 ? `${minRating}+ Stars` : "Any Rating"}
                                     </span>
                                 </div>
@@ -177,10 +194,11 @@ const Shop = () => {
                                     onClick={() => {
                                         setPriceRange([0, 1000]);
                                         setMinRating(0);
+                                        setSortBy("newest");
                                     }}
-                                    className="text-sm font-medium text-gray-500 hover:text-[#c17f59] underline underline-offset-4"
+                                    className="text-sm font-semibold text-gray-500 hover:text-[#c17f59] underline underline-offset-4 transition-colors"
                                 >
-                                    Reset Filters
+                                    Reset All Filters
                                 </button>
                             </div>
                         </div>
@@ -188,11 +206,10 @@ const Shop = () => {
                 )}
 
                 {loading ? (
-                    <div className="flex flex-col items-center justify-center py-24">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#c17f59] mb-4"></div>
-                        <p className="text-gray-400 font-serif">Curating collection...</p>
+                    <div className="flex justify-center py-20">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
                     </div>
-                ) : products.length > 0 ? (
+                ) : filteredProducts.length > 0 ? (
                     <>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
                             {visibleProducts.map((product, index) => (
@@ -285,7 +302,7 @@ const Shop = () => {
                             ))}
                         </div>
 
-                        {products.length > 0 && (
+                        {filteredProducts.length > 0 && (
                             <div className="flex justify-center mt-14">
                                 <div className="flex items-center gap-2">
                                     {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
@@ -307,16 +324,12 @@ const Shop = () => {
                     </>
                 ) : (
                     <div className="text-center py-20">
-                        <p className="text-xl text-gray-400 font-serif mb-4">No products match your criteria.</p>
+                        <p className="text-xl text-gray-400 font-serif mb-4">No products found in this category.</p>
                         <button
-                            onClick={() => {
-                                navigate('/shop');
-                                setPriceRange([0, 1000]);
-                                setMinRating(0);
-                            }}
-                            className="px-8 py-3 bg-gray-900 !text-white rounded-full hover:bg-black transition-colors"
+                            onClick={() => navigate('/category/skincare')}
+                            className="px-8 py-3 bg-gray-900 !text-white rounded-full hover:bg-gray-800"
                         >
-                            View All Products
+                            Browse Skincare
                         </button>
                     </div>
                 )}

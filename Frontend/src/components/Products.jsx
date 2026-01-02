@@ -12,6 +12,7 @@ function Products() {
   const [showFilters, setShowFilters] = useState(false);
   const [priceRange, setPriceRange] = useState([0, 1000]);
   const [minRating, setMinRating] = useState(0);
+  const [sortBy, setSortBy] = useState("newest");
   const navigate = useNavigate();
   const { handleAddToCart, handleAddToWishlist, handleRemoveFromWishlist, wishlistIds } = useShop();
 
@@ -24,6 +25,8 @@ function Products() {
         minPrice: priceRange[0] || undefined,
         maxPrice: priceRange[1] || undefined,
         minRating: minRating || undefined,
+        sortBy: sortBy === "price-asc" || sortBy === "price-desc" ? "price" : sortBy === "rating" ? "rating" : undefined,
+        order: sortBy === "price-asc" ? "asc" : sortBy === "price-desc" ? "desc" : undefined,
       };
       const response = await getAllProducts(params);
       setProducts(response.product || []);
@@ -37,7 +40,7 @@ function Products() {
 
   useEffect(() => {
     fetchData();
-  }, [priceRange, minRating]);
+  }, [priceRange, minRating, sortBy]);
 
   const getBadges = (index) => {
     const badgeOptions = [
@@ -78,15 +81,27 @@ function Products() {
         </div>
 
         {/* Unified Filter Toolbar */}
-        <div className="flex justify-between items-center mb-10 pb-6 border-b border-gray-100">
+        <div className="flex justify-between items-center mb-10 pb-6 border-b border-gray-100 flex-wrap gap-4">
           <p className="text-gray-500">{products.length} Product{products.length !== 1 ? 's' : ''}</p>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 font-medium transition-colors ${showFilters ? 'text-[#c17f59]' : 'text-gray-900'} hover:text-[#c17f59]`}
-            id="filter-toggle-home"
-          >
-            <Filter size={18} /> {showFilters ? 'Hide Filters' : 'Filter'}
-          </button>
+          <div className="flex items-center gap-4">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="bg-white border border-gray-200 rounded-full px-4 py-2 text-sm font-medium text-gray-900 outline-none focus:border-[#c17f59] cursor-pointer"
+            >
+              <option value="newest">Newest First</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
+              <option value="rating">Highest Rated</option>
+            </select>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 font-medium transition-colors ${showFilters ? 'text-[#c17f59]' : 'text-gray-900'} hover:text-[#c17f59]`}
+              id="filter-toggle-home"
+            >
+              <Filter size={18} /> {showFilters ? 'Hide Filters' : 'Filter'}
+            </button>
+          </div>
         </div>
 
         {/* Filter Panel */}
@@ -147,6 +162,7 @@ function Products() {
                   onClick={() => {
                     setPriceRange([0, 1000]);
                     setMinRating(0);
+                    setSortBy("newest");
                   }}
                   className="text-sm font-semibold text-gray-500 hover:text-[#c17f59] underline underline-offset-4 transition-colors"
                 >

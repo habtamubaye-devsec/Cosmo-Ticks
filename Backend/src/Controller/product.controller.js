@@ -184,74 +184,101 @@ const getProduct = asyncHandler(async (req, res) => {
   }
 });
 
+// Helper to escape regex special characters
+const escapeRegExp = (string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
 //GET ALL PRODUCT
 const getAllProduct = asyncHandler(async (req, res) => {
-  const { new: qNew, category, subCategory, search, minPrice, maxPrice, minRating } = req.query;
+  try {
+    const { new: qNew, category, subCategory, search, minPrice, maxPrice, minRating, sortBy, order } = req.query;
 
-  let query = {};
+    let query = {};
 
-  // Search filter (title, description, category, subCategory)
-  if (search) {
-    const searchRegex = new RegExp(search, "i");
-    query.$or = [
-      { title: { $regex: searchRegex } },
-      { description: { $regex: searchRegex } },
-      { category: { $in: [searchRegex] } },
-      { subCategory: { $regex: searchRegex } }
-    ];
-  }
+    // Search filter (title, description, category, subCategory)
+    if (search) {
+      const escapedSearch = escapeRegExp(search);
+      const searchRegex = new RegExp(escapedSearch, "i");
+      query.$or = [
+        { title: { $regex: searchRegex } },
+        { description: { $regex: searchRegex } },
+        { category: { $regex: searchRegex } },
+        { subCategory: { $regex: searchRegex } }
+      ];
+    }
 
-  // Category filter
-  if (category) {
-    query.category = { $in: [category] };
-  }
+    // Category filter
+    if (category) {
+      query.category = { $in: [category] };
+    }
 
-  // Subcategory filter
-  if (subCategory) {
-    query.subCategory = subCategory;
-  }
+    // Subcategory filter
+    if (subCategory) {
+      query.subCategory = subCategory;
+    }
 
-  // Price filter
-  if (minPrice || maxPrice) {
-    query.oridinaryPrice = {};
-    if (minPrice) query.oridinaryPrice.$gte = Number(minPrice);
-    if (maxPrice) query.oridinaryPrice.$lte = Number(maxPrice);
-  }
+    // Price filter
+    if (minPrice || maxPrice) {
+      query.oridinaryPrice = {};
+      if (minPrice) query.oridinaryPrice.$gte = Number(minPrice);
+      if (maxPrice) query.oridinaryPrice.$lte = Number(maxPrice);
+    }
 
-  // Rating filter
-  // Since ratings is an array of objects, we use aggregation if we want to filter by average rating.
-  // However, for simplicity and performance in standard find, we can fetch and filter in JS if the collection is small,
-  // or use $expr with $avg if using Mongoose 5.x+ or aggregation pipeline.
-  // Let's use aggregation pipeline for better scalability.
+    // Build Sort Object
+    let sortObj = {};
+    if (sortBy === "price") {
+      sortObj.oridinaryPrice = order === "asc" ? 1 : -1;
+    } else if (sortBy === "rating") {
+      sortObj.avgRating = -1; // Highest rating first
+    } else if (qNew) {
+      sortObj.createdAt = -1;
+    } else {
+      sortObj.createdAt = -1; // Default
+    }
 
-  let products;
-  if (minRating) {
-    const minR = Number(minRating);
-    products = await Product.aggregate([
+    // Rating filter & Sorting
+    const minR = Number(minRating || 0);
+
+    // We use aggregation to calculate avgRating for both filtering and sorting
+    let products = await Product.aggregate([
       { $match: query },
       {
         $addFields: {
-          avgRating: { $avg: "$ratings.star" }
+          avgRating: {
+            $cond: {
+              if: { $gt: [{ $size: { $ifNull: ["$ratings", []] } }, 0] },
+              then: { $avg: "$ratings.star" },
+              else: 0
+            }
+          }
         }
       },
-      { $match: { $or: [{ avgRating: { $gte: minR } }, { ratings: { $size: 0 }, avgRating: { $exists: false } }] } }, // Handle products with no ratings if minRating is low or 0
-      { $sort: qNew ? { createdAt: -1 } : { createdAt: -1 } }
+      { $match: { avgRating: { $gte: minR } } },
+      { $sort: Object.keys(sortObj).length > 0 ? sortObj : { createdAt: -1 } },
+      // Optional: use $unwind and $lookup if you want to populate in aggregation
+      // For now, let's just make the manual populate safer by filtering out invalid IDs or using a try-catch
     ]);
-    // Populate manualy since aggregate doesn't support populate directly as easily as find
-    await Product.populate(products, {
-      path: "ratings.postedBy",
-      select: "name email",
-    });
-  } else {
-    products = await Product.find(query)
-      .sort(qNew ? { createdAt: -1 } : { createdAt: -1 })
-      .populate({
-        path: "ratings.postedBy",
-        select: "name email",
-      });
-  }
 
-  res.status(200).json({ message: "Products fetched successfully", product: products });
+    // Populate manually - Safe version
+    if (products && products.length > 0) {
+      try {
+        await Product.populate(products, {
+          path: "ratings.postedBy",
+          model: "User",
+          select: "name email",
+        });
+      } catch (popError) {
+        console.error("Population error (likely invalid user ID):", popError.message);
+        // We continue anyway, products will just have unpopulated user IDs
+      }
+    }
+
+    res.status(200).json({ message: "Products fetched successfully", product: products });
+  } catch (error) {
+    console.error("Error in getAllProduct:", error);
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
 });
 
 //RATING PRODUCT
