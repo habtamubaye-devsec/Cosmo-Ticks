@@ -15,8 +15,8 @@ const PORT = process.env.PORT || 8000;
 
 //SCHEDULE SERVICE
 const services = () => {
-  cron.schedule('* * * * * *', () => { // every second
-    // sendWelcomeEmail();
+  // Every 2 minutes (safe); each sender is idempotent via *EmailSent flags.
+  cron.schedule('*/2 * * * *', () => {
     sendPendingOrderEmail();
     sendDeliveredOrderEmail();
   });
@@ -28,8 +28,16 @@ const promotionServices = () => {
   });
 };
 
+const welcomeServices = () => {
+  // Every 5 minutes (safe)
+  cron.schedule('*/5 * * * *', () => {
+    sendWelcomeEmail();
+  });
+};
+
 services(); 
 promotionServices();
+welcomeServices();
 // Connect to DB
 dbConnection();
 
