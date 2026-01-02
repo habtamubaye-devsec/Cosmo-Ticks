@@ -186,39 +186,72 @@ const getProduct = asyncHandler(async (req, res) => {
 
 //GET ALL PRODUCT
 const getAllProduct = asyncHandler(async (req, res) => {
-  const qNew = req.query.new;
-  const qCategory = req.query.category;
-  const qSearch = req.query.search;
-  let product ;
+  const { new: qNew, category, subCategory, search, minPrice, maxPrice, minRating } = req.query;
 
-  if (qNew) {
-    product = await Product.find().sort({ createdAt: -1 }).populate({
-      path: "ratings.postedBy",
-      select: "name email",
-    });
-  } else if (qCategory) {
-    product = await Product.find({ category: { $in: [qCategory] } }).populate({
-      path: "ratings.postedBy",
-      select: "name email",
-    });
-  } else if (qSearch) {
-    product = await Product.find({
-      $text: {
-        $search: qSearch,
-        $caseSensitive: false,
-        $diacriticSensitive: false,
+  let query = {};
+
+  // Search filter (title, description, category, subCategory)
+  if (search) {
+    const searchRegex = new RegExp(search, "i");
+    query.$or = [
+      { title: { $regex: searchRegex } },
+      { description: { $regex: searchRegex } },
+      { category: { $in: [searchRegex] } },
+      { subCategory: { $regex: searchRegex } }
+    ];
+  }
+
+  // Category filter
+  if (category) {
+    query.category = { $in: [category] };
+  }
+
+  // Subcategory filter
+  if (subCategory) {
+    query.subCategory = subCategory;
+  }
+
+  // Price filter
+  if (minPrice || maxPrice) {
+    query.oridinaryPrice = {};
+    if (minPrice) query.oridinaryPrice.$gte = Number(minPrice);
+    if (maxPrice) query.oridinaryPrice.$lte = Number(maxPrice);
+  }
+
+  // Rating filter
+  // Since ratings is an array of objects, we use aggregation if we want to filter by average rating.
+  // However, for simplicity and performance in standard find, we can fetch and filter in JS if the collection is small,
+  // or use $expr with $avg if using Mongoose 5.x+ or aggregation pipeline.
+  // Let's use aggregation pipeline for better scalability.
+
+  let products;
+  if (minRating) {
+    const minR = Number(minRating);
+    products = await Product.aggregate([
+      { $match: query },
+      {
+        $addFields: {
+          avgRating: { $avg: "$ratings.star" }
+        }
       },
-    }).populate({
+      { $match: { $or: [{ avgRating: { $gte: minR } }, { ratings: { $size: 0 }, avgRating: { $exists: false } }] } }, // Handle products with no ratings if minRating is low or 0
+      { $sort: qNew ? { createdAt: -1 } : { createdAt: -1 } }
+    ]);
+    // Populate manualy since aggregate doesn't support populate directly as easily as find
+    await Product.populate(products, {
       path: "ratings.postedBy",
       select: "name email",
     });
   } else {
-    product = await Product.find().sort({ createdAt: -1 }).populate({
-      path: "ratings.postedBy",
-      select: "name email",
-    });
+    products = await Product.find(query)
+      .sort(qNew ? { createdAt: -1 } : { createdAt: -1 })
+      .populate({
+        path: "ratings.postedBy",
+        select: "name email",
+      });
   }
-  res.status(200).json({ message: "Products fetched successfully", product });
+
+  res.status(200).json({ message: "Products fetched successfully", product: products });
 });
 
 //RATING PRODUCT
