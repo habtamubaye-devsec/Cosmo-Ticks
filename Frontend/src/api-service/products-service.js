@@ -5,9 +5,9 @@ const API = axios.create({
   withCredentials: true, // send cookies automatically
 });
 
-// Fetch all products
-export const getAllProducts = async () => {
-  const response = await API.get("/products/");
+// Fetch all products with optional filters
+export const getAllProducts = async (params = {}) => {
+  const response = await API.get("/products/", { params });
   return response.data;
 };
 
