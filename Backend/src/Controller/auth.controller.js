@@ -2,6 +2,9 @@ import asyncHandler from "express-async-handler";
 import bcrypt from "bcryptjs";
 import User from "../models/user.model.js";
 import jwt from "jsonwebtoken";
+import sendMail from "../utils/mailer.js";
+import { buildResetPasswordEmail } from "../utils/templates/resetPasswordTemplate.js";
+
 
 //REGISTER USER
 //route POST /api/v1/register
@@ -121,3 +124,100 @@ const logout = asyncHandler(async (req, res) => {
 });
 
 export { registerUser, loginUser, currentUser, logout, oauthCallback };
+
+// CHANGE PASSWORD (Authenticated)
+// route POST /api/v1/auth/change-password
+// @access private
+export const changePassword = asyncHandler(async (req, res) => {
+  try {
+    const userId = req.user?._id;
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Current and new password are required" });
+    }
+
+    const user = await User.findById(userId).select("+password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const validPassword = await bcrypt.compare(currentPassword, user.password);
+    if (!validPassword) {
+      return res.status(401).json({ message: "Current password is incorrect" });
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    user.password = hashed;
+    await user.save();
+    return res.status(200).json({ message: "Password updated successfully" });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// REQUEST PASSWORD RESET (Public)
+// route POST /api/v1/auth/password/reset-request
+// @access public
+export const requestPasswordReset = asyncHandler(async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    const user = await User.findOne({ email });
+    // Always return generic message to avoid user enumeration
+
+    const token = user
+      ? jwt.sign({ _id: user._id }, process.env.TOKEN_SECRET, { expiresIn: "1h" })
+      : null;
+      console.log("Generated reset token:", token);
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const resetLink = token ? `${frontendUrl}/reset-password?token=${token}` : null;
+
+    try {
+      if (token) {
+        await sendMail({
+          from: process.env.MAIL_FROM || process.env.SMTP_USER || process.env.NODEMAILER_EMAIL,
+          to: email,
+          subject: "Reset your Cosmo-ticks password",
+          html: buildResetPasswordEmail(resetLink),
+        });
+      }
+    } catch (mailErr) {
+      console.error("Failed to send reset email:", mailErr);
+      // We still return generic success to avoid enumeration and UX leakage
+    }
+
+    return res.status(200).json({ message: "If the email exists, a reset link was sent" });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// RESET PASSWORD (Public via token)
+// route POST /api/v1/auth/password/reset
+// @access public
+export const resetPassword = asyncHandler(async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: "Token and new password are required" });
+    }
+
+    let payload;
+    try {
+      payload = jwt.verify(token, process.env.TOKEN_SECRET);
+    } catch (err) {
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+
+    const user = await User.findById(payload._id).select("+password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    user.password = hashed;
+    await user.save();
+    return res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
