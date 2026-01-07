@@ -79,7 +79,8 @@ function Navbar() {
           </button>
 
           {/* Logo */}
-          <Link to="/" className="font-serif text-2xl lg:text-3xl tracking-tight text-[#5d7a5d] hover:opacity-80 transition-opacity">
+          <Link to="/" className="flex items-center gap-2 font-serif text-2xl lg:text-3xl tracking-tight text-[#5d7a5d] hover:opacity-80 transition-opacity">
+          <img src="../public/Cosmo_Ticks_Logo 2.png" alt="" width={30}/>
             Cosmo-ticks
           </Link>
 

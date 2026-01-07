@@ -16,6 +16,8 @@ import OAuthCallback from "./pages/OAuthCallback";
 import OrderSuccess from "./pages/OrderSuccess"; 
 import About from "./pages/About";
 import { ShopProvider } from "./context/ShopContext";
+import ResetPassword from "./pages/ResetPassword";
+import ForgotPassword from "./pages/ForgotPassword";
 
 function App() {
   return (
@@ -45,6 +47,8 @@ function App() {
 
           {/* Order Success */}
           <Route path="/order/success" element={<OrderSuccess />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
           {/* Category / Shop Routes */}
           <Route path="/shop" element={<Shop />} />

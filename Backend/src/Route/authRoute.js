@@ -5,6 +5,9 @@ import {
   logout,
   currentUser,
   oauthCallback,
+  changePassword,
+  requestPasswordReset,
+  resetPassword,
 } from "../Controller/auth.controller.js";
 import { validateToken } from "../Middleware/auth.middleware.js";
 import passport from "../config/passport.js";
@@ -15,6 +18,11 @@ router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.get("/currentUser", validateToken, currentUser);
 router.post("/logout", logout);
+
+// Password management
+router.post("/change-password", validateToken, changePassword);
+router.post("/password/reset-request", requestPasswordReset);
+router.post("/password/reset", resetPassword);
 
 // Google OAuth routes
 router.get(

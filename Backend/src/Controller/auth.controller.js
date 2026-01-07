@@ -169,7 +169,6 @@ export const requestPasswordReset = asyncHandler(async (req, res) => {
     const token = user
       ? jwt.sign({ _id: user._id }, process.env.TOKEN_SECRET, { expiresIn: "1h" })
       : null;
-      console.log("Generated reset token:", token);
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const resetLink = token ? `${frontendUrl}/reset-password?token=${token}` : null;
 

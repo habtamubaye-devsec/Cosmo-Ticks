@@ -121,7 +121,7 @@ function Cart() {
     <div className="min-h-screen bg-white flex flex-col">
       <Navbar />
 
-      <main className="flex-1 pt-24 pb-20">
+      <main className="flex-1  pb-20">
         <div className="container mx-auto px-6 max-w-6xl">
           <h1 className="font-serif text-4xl text-gray-900 mb-10">Shopping Bag</h1>
 

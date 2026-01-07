@@ -44,3 +44,33 @@ export const logoutUser = async () => {
     else throw error;
   }
 };
+
+export const changePassword = async (data) => {
+  try {
+    const response = await api.post("/auth/change-password", data);
+    return response.data;
+  } catch (error) {
+    if (error.response) throw error.response.data;
+    else throw error;
+  }
+};
+
+export const requestPasswordReset = async (data) => {
+  try {
+    const response = await api.post("/auth/password/reset-request", data);
+    return response.data;
+  } catch (error) {
+    if (error.response) throw error.response.data;
+    else throw error;
+  }
+};
+
+export const resetPassword = async (data) => {
+  try {
+    const response = await api.post("/auth/password/reset", data);
+    return response.data;
+  } catch (error) {
+    if (error.response) throw error.response.data;
+    else throw error;
+  }
+};

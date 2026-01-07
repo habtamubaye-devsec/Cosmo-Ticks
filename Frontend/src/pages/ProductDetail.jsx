@@ -328,7 +328,7 @@ function ProductDetail() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Review</label>
-            <Input.TextArea rows={4} placeholder="Share your thoughts about this product..." value={reviewForm.comment} onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })} />
+            <Input.TextArea rows={4} placeholder="Share your thoughts about this product..." value={reviewForm.comment} onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })} className="!rounded-xl" />
           </div>
         </div>
       </Modal>

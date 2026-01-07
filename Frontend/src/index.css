@@ -154,3 +154,22 @@
 		@apply bg-background text-foreground;
 	}
 }
+
+/* Rounded-xl inputs across app (exclude custom search field) */
+/* Ant Design input base */
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-input-password,
+.ant-input-number,
+.ant-input-textarea-affix-wrapper,
+textarea.ant-input,
+.ant-picker,
+.ant-select-selector {
+  border-radius: 0.75rem !important; /* rounded-xl */
+}
+
+/* Keep AntD Search input pill shape if used */
+.ant-input-search .ant-input,
+.ant-input-search .ant-input-affix-wrapper {
+  border-radius: 9999px !important; /* rounded-full */
+}

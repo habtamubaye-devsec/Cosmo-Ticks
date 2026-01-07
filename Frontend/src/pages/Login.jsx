@@ -89,7 +89,7 @@ function Login() {
                         { type: "email", message: "Please enter a valid email" },
                       ]}
                     >
-                      <Input placeholder="Email address" className="h-12" autoComplete="email" />
+                      <Input placeholder="Email address" className="h-12 rounded  " autoComplete="email" />
                     </Form.Item>
 
                     <Form.Item
@@ -103,12 +103,12 @@ function Login() {
                       <Form.Item name="remember" valuePropName="checked" noStyle>
                         <Checkbox className="text-gray-600">Remember me</Checkbox>
                       </Form.Item>
-                      <a
+                      <Link
+                        to="/forgot-password"
                         className="text-sm text-[#c17f59] supports-[hover:hover]:hover:underline"
-                        href="mailto:support@cosmo-ticks.com?subject=Password%20Reset"
                       >
                         Forgot password?
-                      </a>
+                      </Link>
                     </div>
 
                     <Form.Item className="mb-3">
@@ -163,7 +163,6 @@ function Login() {
           </div>
         </div>
       </main>
-
       <Footer />
     </div>
   );
